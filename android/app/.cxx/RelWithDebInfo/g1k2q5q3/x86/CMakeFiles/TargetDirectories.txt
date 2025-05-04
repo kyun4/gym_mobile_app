@@ -1,0 +1,2 @@
+C:/Users/efren/Desktop/fitup_mobile/android/app/.cxx/RelWithDebInfo/g1k2q5q3/x86/CMakeFiles/edit_cache.dir
+C:/Users/efren/Desktop/fitup_mobile/android/app/.cxx/RelWithDebInfo/g1k2q5q3/x86/CMakeFiles/rebuild_cache.dir
