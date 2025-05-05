@@ -53,16 +53,9 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-
-      // apiKey: 'AIzaSyCtYHNHx_IBHZHuKxx-B9-GHzt4i3NNlQ8',
-      // appId: '1:640969611114:web:c2d649a02c464c6e2ff713',
-      // messagingSenderId: '640969611114',
-      // projectId: 'fitup-43ee3',
-      // storageBucket: 'fitup-43ee3.firebasestorage.app'
-
-      apiKey: "AIzaSyBIPSBi9rCTluESIxanIfTD3qJL6WayJXY",
-      appId: "1:143835753564:web:fa2d64fe1aa0a086ebca99",
-      messagingSenderId: "143835753564",
-      projectId: "fitup-43ee2",
-      storageBucket: "fitup-43ee2.firebasestorage.app");
+      apiKey: "firebaseapikey",
+      appId: "firebaseappid",
+      messagingSenderId: "firebase-messagesenderid",
+      projectId: "firebaseproject-id",
+      storageBucket: "firebasestorage-bucket");
 }
