@@ -218,9 +218,10 @@ void confirmPayment(
   } else {
     updateUserSessionStatus(userSessionId, "1");
 
-    remitPaymentToTrainerTransaction(transactionId, userId, trainerId, classId,
-        sessionId, price_per_day, fitup_service_fee);
     remitFeeToFitupWalletTransaction(transactionId, userId, trainerId, classId,
+        sessionId, price_per_day, fitup_service_fee);
+
+    remitPaymentToTrainerTransaction(transactionId, userId, trainerId, classId,
         sessionId, price_per_day, fitup_service_fee);
   }
 } // confirmPayment
@@ -325,7 +326,7 @@ void remitFeeToFitupWalletTransaction(
     updateFitUpWallet(netPriceDouble.toString());
   } else {
     netPriceDouble = pricePerDayDouble - fitupFeeDouble;
-    updateFitUpWallet(fitup_service_fee_string);
+    updateFitUpWallet(fitupFeeDouble.toString());
     updateTrainerWallet(trainerId, netPriceDouble.toString());
   }
 
@@ -421,7 +422,7 @@ void updateTrainerWallet(String trainerFirebaseUID, String addedBalance) async {
       DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now());
   String url = dbUrl + "trainer_wallet/$trainerFirebaseUID.json";
   try {
-    final response = http.put(Uri.parse(url),
+    final response = http.patch(Uri.parse(url),
         body: json.encode({
           "trainer_wallet_id": trainerFirebaseUID,
           "current_balance": newBalance,
@@ -440,13 +441,17 @@ Future<String> getTrainerWallet(String firebaseUID) async {
     final response = await http.get(Uri.parse(url));
     final extractedData = json.decode(response.body) as Map<String, dynamic>;
 
+    if (extractedData == Null || response.body.isEmpty) {
+      return "0";
+    }
+
     extractedData.forEach((key, json) {
-      currentBalance = json['current_balance'] ?? "";
+      currentBalance = json['current_balance'] ?? "0";
     });
   } catch (error) {
-    throw error;
+    return "0";
   }
-  return currentBalance ?? "";
+  return currentBalance ?? "0";
 } // getTrainerWallet
 
 class _adminTransactionState extends State<AdminTransaction> {

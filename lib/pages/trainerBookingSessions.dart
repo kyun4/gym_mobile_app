@@ -109,6 +109,7 @@ class _trainerBookingSessionsState extends State<TrainerBookingSessions> {
   String? firebaseUID;
   String? gymUserSessionStatus;
   String? gymUserSessionPaymentStatus;
+  String? gymSessionUserId;
   List<GymSessionClass> listGymSessionData = [];
   List<GymUserSessionClass> listGymUserSessionData = [];
   List<AdminSettings> listAdminSettingsData = [];
@@ -164,6 +165,7 @@ class _trainerBookingSessionsState extends State<TrainerBookingSessions> {
     String? classIdValue = await getSession("classId");
     String? trainerUsernameValue = await getSession("trainerUsername");
     String? gymUserClassStatusValue = await getSession("status");
+    String? sessionUserIdValue = await getSession("session_user_id");
 
     setState(() {
       trainerFullname = trainerFullnameValue;
@@ -171,6 +173,7 @@ class _trainerBookingSessionsState extends State<TrainerBookingSessions> {
       classId = classIdValue;
       trainerUsername = trainerUsernameValue;
       gymUserClassStatus = gymUserClassStatusValue;
+      gymSessionUserId = sessionUserIdValue;
     });
   } // getSharedPreferences
 
@@ -318,7 +321,9 @@ class _trainerBookingSessionsState extends State<TrainerBookingSessions> {
                             String userStatus = listGymUserSessionData
                                         .where((userSession) =>
                                             userSession.gym_session_id ==
-                                            sessionId)
+                                                sessionId &&
+                                            userSession.user_id ==
+                                                gymSessionUserId)
                                         .toList()
                                         .length >
                                     0

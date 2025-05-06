@@ -616,7 +616,9 @@ class _userBookingSessionsState extends State<UserBookingSessions> {
                                 listGymUserSessionData
                                             .where((gymUserSession) =>
                                                 gymUserSession.gym_session_id ==
-                                                sessionId)
+                                                    sessionId &&
+                                                gymUserSession.user_id ==
+                                                    firebaseUID)
                                             .toList()
                                             .length >
                                         0
@@ -638,7 +640,8 @@ class _userBookingSessionsState extends State<UserBookingSessions> {
                                 ? listGymUserSessionData
                                     .where((gymUserSession) =>
                                         gymUserSession.gym_session_id ==
-                                        sessionId)
+                                            sessionId &&
+                                        gymUserSession.user_id == firebaseUID)
                                     .first
                                     .gym_user_session_id
                                 : "";

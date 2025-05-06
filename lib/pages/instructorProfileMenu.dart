@@ -7,6 +7,7 @@ import 'package:fitup/classes/users.dart';
 import 'package:fitup/classes/GymTrainerClasses.dart';
 import 'package:fitup/classes/UserGymClasses.dart';
 import 'package:fitup/classes/GymSessionClass.dart';
+import 'package:fitup/classes/TrainerWallet.dart';
 import 'package:fitup/pages/instructorMainMenu.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
@@ -91,6 +92,7 @@ class _instructorProfileMenuState extends State<InstructorProfileMenu> {
   String? profileImageUrl;
   String? clientNumbers;
   String? sessionNumbers;
+  String? trainerBalance;
 
   void initState() {
     super.initState();
@@ -102,6 +104,7 @@ class _instructorProfileMenuState extends State<InstructorProfileMenu> {
     getLatestProfile();
     getTotalClientNumbers();
     getTotalSessionNumbers();
+    getTrainerBalance();
   }
 
   void getTotalClientNumbers() async {
@@ -131,6 +134,38 @@ class _instructorProfileMenuState extends State<InstructorProfileMenu> {
       sessionNumbers = sessionNumberInt.toString();
     });
   } // getTotalSessionNumbers
+
+  void getTrainerBalance() async {
+    String? trainerBalanceValue = await getTrainerBalanceValue();
+    setState(() {
+      trainerBalance = trainerBalanceValue;
+    });
+  } // getTrainerBalance
+
+  Future<String> getTrainerBalanceValue() async {
+    String firebaseUIDValue = FirebaseAuth.instance.currentUser!.uid.toString();
+    String? trainerWalletBalance;
+    String url = dbUrl + "trainer_wallet.json";
+    try {
+      final response = await http.get(Uri.parse(url));
+      final extractedData = json.decode(response.body) as Map<String, dynamic>;
+      if (extractedData == Null ||
+          extractedData == null ||
+          response.body.isEmpty) {
+        return "0";
+      }
+
+      extractedData.forEach((key, json) {
+        if (json['trainer_id'] == firebaseUIDValue) {
+          trainerWalletBalance = json['current_balance'] ?? "0";
+        }
+      });
+    } catch (error) {
+      return "0";
+    }
+
+    return trainerWalletBalance ?? "";
+  } // getTrainerBalanceValue
 
   Future<void> getLatestProfile() async {
     String? latestProfileURL = await getUserImageData(firebaseUID ?? "");
@@ -337,7 +372,7 @@ class _instructorProfileMenuState extends State<InstructorProfileMenu> {
                         Navigator.push(context,
                             MaterialPageRoute(builder: (context) {
                           return InstructorMainMenu(
-                              selectedInitIndex: 4, subSelectedInitIndex: 10);
+                              selectedInitIndex: 4, subSelectedInitIndex: 13);
                         }));
                       },
                       child: Container(
@@ -364,11 +399,104 @@ class _instructorProfileMenuState extends State<InstructorProfileMenu> {
                     SizedBox(height: 25),
                     Container(
                         margin: const EdgeInsets.only(top: 11, bottom: 15),
-                        child: Text("Provides:",
+                        height: 135,
+                        width: MediaQuery.of(context).size.width - 25,
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                  blurRadius: 16.5,
+                                  spreadRadius: 2,
+                                  color: Colors.grey.withOpacity(0.05),
+                                  offset: Offset(5, 5))
+                            ]),
+                        child: Container(
+                          height: 115,
+                          margin: const EdgeInsets.all(15),
+                          child: Column(
+                            children: [
+                              Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text("Your Fit Up Wallet Balance",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w400)),
+                                    Text(
+                                        trainerBalance != null
+                                            ? "PHP " + trainerBalance!
+                                            : "--- --.--",
+                                        style: TextStyle(
+                                            fontSize: 32,
+                                            fontWeight: FontWeight.bold))
+                                  ]),
+                              Container(
+                                  height: 35,
+                                  margin: const EdgeInsets.only(top: 3),
+                                  width: MediaQuery.of(context).size.width - 25,
+                                  child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceEvenly,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              Container(
+                                                  margin:
+                                                      const EdgeInsets.all(3.5),
+                                                  child: Icon(Icons.history,
+                                                      color: Color.fromARGB(
+                                                          199, 167, 10, 180))),
+                                              Container(
+                                                margin:
+                                                    const EdgeInsets.all(3.5),
+                                                child: Text("See history",
+                                                    style: TextStyle(
+                                                        color: Color.fromARGB(
+                                                            199,
+                                                            167,
+                                                            10,
+                                                            180))),
+                                              )
+                                            ]),
+                                        Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              Container(
+                                                  margin:
+                                                      const EdgeInsets.all(3.5),
+                                                  child: Icon(
+                                                      Icons.outbond_outlined,
+                                                      color: Color.fromARGB(
+                                                          199, 167, 10, 180))),
+                                              Container(
+                                                margin:
+                                                    const EdgeInsets.all(3.5),
+                                                child: Text("Withdraw/Cash Out",
+                                                    style: TextStyle(
+                                                        color: Color.fromARGB(
+                                                            199,
+                                                            167,
+                                                            10,
+                                                            180))),
+                                              )
+                                            ])
+                                      ]))
+                            ],
+                          ),
+                        )),
+                    SizedBox(height: 25),
+                    Container(
+                        margin: const EdgeInsets.only(top: 11, bottom: 15),
+                        child: Text("Your Gym Classes",
                             style: TextStyle(fontWeight: FontWeight.bold))),
                     Container(
                         margin: const EdgeInsets.only(bottom: 15),
-                        width: MediaQuery.of(context).size.width - 100,
+                        width: MediaQuery.of(context).size.width - 25,
                         height: 70,
                         child: StreamBuilder(
                             stream: getTrainerClasses().asStream(),
@@ -408,16 +536,16 @@ class _instructorProfileMenuState extends State<InstructorProfileMenu> {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Text(className,
+                                              Text(className.toUpperCase(),
                                                   style: TextStyle(
                                                       fontWeight:
-                                                          FontWeight.bold,
+                                                          FontWeight.w400,
                                                       fontSize: 14)),
                                               Text("PHP $pricePerDay per Day",
                                                   style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.w300,
-                                                      fontSize: 12))
+                                                      fontSize: 14))
                                             ]));
                                   });
                             })),

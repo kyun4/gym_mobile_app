@@ -406,6 +406,7 @@ class _clientOrdersState extends State<ClientOrders> {
                           setSession("classId", classId);
                           setSession("trainerUsername", trainerUsername);
                           setSession("status", status);
+                          setSession("session_user_id", clientUserId);
                           Navigator.pushReplacement(context,
                               MaterialPageRoute(builder: (context) {
                             return const InstructorMainMenu(

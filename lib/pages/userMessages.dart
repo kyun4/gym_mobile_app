@@ -69,9 +69,6 @@ class _userMessagesState extends State<UserMessages> {
             Map<String, dynamic>.from(event.snapshot.value as Map);
 
         extractedData.forEach((userId, usersData) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(usersData['username'])));
-
           listUsers.add(usersData);
         });
       });
@@ -125,17 +122,20 @@ class _userMessagesState extends State<UserMessages> {
     return listUserImages;
   } // getUsersImageData
 
-  Stream<List<Messages>> getInbox(
-      String firebaseUID, String roleId, bool clientRequestMode) {
-    final databaseRef = FirebaseDatabase.instance.ref('messages');
-
+  Future<List<Messages>> getInbox(
+      String firebaseUID, String roleId, bool clientRequestMode) async {
     List<Messages> listMsgGrouped = [];
     List<Messages> listMsgGroupedFiltered = [];
+    final List<Messages> listMsg = [];
 
-    return databaseRef.onValue.map((event) {
-      final List<Messages> listMsg = [];
-      final extractedData =
-          Map<String, dynamic>.from(event.snapshot.value as Map);
+    String url = dbUrl + "messages.json";
+    try {
+      final response = await http.get(Uri.parse(url));
+      final extractedData = json.decode(response.body) as Map<String, dynamic>;
+
+      if (extractedData == null || response.body.isEmpty) {
+        return [];
+      }
 
       extractedData.forEach((messageId, messageData) {
         if (firebaseUID == messageData['sender'] ||
@@ -152,40 +152,43 @@ class _userMessagesState extends State<UserMessages> {
               is_deleted: messageData['is_deleted'] ?? ""));
         }
       });
+    } catch (error) {
+      throw error;
+    }
 
-      listMsg.sort((a, b) =>
-          DateTime.parse(b.date_time).compareTo(DateTime.parse(a.date_time)));
+    listMsg.sort((a, b) =>
+        DateTime.parse(b.date_time).compareTo(DateTime.parse(a.date_time)));
 
-      if (roleId == '2') {
-        if (clientRequestMode == false) {
-          listMsgGroupedFiltered = listMsg
-              .where((messageData) => messageData.is_client_request == '0')
-              .toList();
-        } else {
-          listMsgGroupedFiltered = listMsg
-              .where((messageData) => messageData.is_client_request == '1')
-              .toList();
-        }
+    if (roleId == '2') {
+      if (clientRequestMode == false) {
+        listMsgGroupedFiltered = listMsg
+            .where((messageData) => messageData.is_client_request == '0')
+            .toList();
       } else {
-        listMsgGroupedFiltered = listMsg;
+        listMsgGroupedFiltered = listMsg
+            .where((messageData) => messageData.is_client_request == '1')
+            .toList();
       }
+    } else {
+      listMsgGroupedFiltered = listMsg;
+    }
 
-      listMsgGrouped = groupMessagesBySender(listMsgGroupedFiltered);
+    listMsgGrouped = groupMessagesBySender(listMsgGroupedFiltered);
 
-      return listMsgGrouped;
-    });
+    return listMsgGrouped;
   }
 
   final firebaseAuth = FirebaseAuth.instance.currentUser;
 
-  Stream<List<Users>> getAllUsers() {
-    final databaseRef = FirebaseDatabase.instance.ref("users");
+  Future<List<Users>> getAllUsers() async {
+    String url = dbUrl + "users.json";
+    try {
+      final response = await http.get(Uri.parse(url));
+      final extractedData = json.decode(response.body) as Map<String, dynamic>;
 
-    return databaseRef.onValue.map((event) {
-      final List<Users> listUsers = [];
-
-      final extractedData =
-          Map<String, dynamic>.from(event.snapshot.value as Map);
+      if (extractedData == null || response.body.isEmpty) {
+        return [];
+      }
 
       extractedData.forEach((userId, userData) {
         listUsers.add(Users(
@@ -206,11 +209,11 @@ class _userMessagesState extends State<UserMessages> {
             date_time_premium_activated: userData['date_time_activated'] ?? '',
             date_time_membership: userData['date_time_membership'] ?? ''));
       });
+    } catch (error) {
+      throw error;
+    }
 
-      // listUsers.where((userData) => userData.role == "2").toList();
-
-      return listUsers;
-    });
+    return listUsers;
   }
 
   Future<List<Users>> getUsersDataJson() async {
@@ -220,6 +223,7 @@ class _userMessagesState extends State<UserMessages> {
       final extractedData = json.decode(response.body) as Map<String, dynamic>;
 
       if (response.body == null || response.body.isEmpty) {
+        return [];
       } else {
         extractedData.forEach((userId, userData) {
           listUsers.add(Users(
@@ -270,7 +274,7 @@ class _userMessagesState extends State<UserMessages> {
     });
   } // loadAllRecords()
 
-  Future<void> getAllUsersFuture() async {
+  void getAllUsersFuture() async {
     List<Users> listUserData = await getUsersDataJson();
     setState(() {
       listUsers = listUserData;
@@ -329,8 +333,9 @@ class _userMessagesState extends State<UserMessages> {
             Container(
               height: MediaQuery.of(context).size.height - 200,
               child: StreamBuilder(
-                  stream: getInbox(
-                      firebaseUIDValue ?? "", roleId ?? "", clientRequestMode),
+                  stream: getInbox(firebaseUIDValue ?? "", roleId ?? "",
+                          clientRequestMode)
+                      .asStream(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(child: CircularProgressIndicator());

@@ -26,6 +26,7 @@ import 'package:fitup/pages/instructorClassesMenu.dart';
 import 'package:fitup/pages/instructorProfileMenu.dart';
 import 'package:fitup/pages/userProfileImage.dart';
 import 'package:fitup/pages/EditProfileDetails.dart';
+import 'package:fitup/pages/EditTrainerDetails.dart';
 import 'package:fitup/pages/userSettings.dart';
 
 import 'dart:convert';
@@ -341,6 +342,8 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
           pageCurrent = const UserProfileImage();
         case 12:
           pageCurrent = const EditProfileDetails();
+        case 13:
+          pageCurrent = const EditTrainerDetails();
 
         default:
           pageCurrent = const Center(child: Text("Page not found"));
@@ -944,23 +947,6 @@ class _DashboardPage extends State<DashboardPage> {
 
     return pageCurrent;
   }
-}
-
-List<FlSpot> _getLineSpots() {
-  return const [
-    FlSpot(0, 1),
-    FlSpot(1, 3),
-    FlSpot(2, 2),
-    FlSpot(3, 5),
-    FlSpot(4, 3.5),
-    FlSpot(5, 4),
-    FlSpot(6, 7.5),
-    FlSpot(7, 8),
-    FlSpot(8, 10),
-    FlSpot(9, 7),
-    FlSpot(10, 15),
-    FlSpot(11, 17),
-  ];
 }
 
 Widget _buildClientNumbersTitles(double value, TitleMeta meta) {

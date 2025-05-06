@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
 import 'package:fitup/pages/UserMainMenu.dart';
-import 'package:fitup/pages/adminMainMenu.dart';
 import 'package:fitup/pages/InstructorMainMenu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitup/classes/Users.dart';
+import 'package:fitup/classes/GymTrainerProfileClass.dart';
 
 import 'package:fitup/components/textField.dart';
 import 'package:fitup/components/textFieldPhone.dart';
-import 'package:fitup/components/textField_obscure.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl/intl.dart';
 
 import 'package:fitup/classes/AppConfig.dart';
 
@@ -41,26 +41,46 @@ Future<void> removeSession(String key) async {
 } // removeSession
 
 void updateUserDetails(
-    String firebaseUID,
-    String username,
-    String phone,
-    String firstname,
-    String middlename,
-    String lastname,
-    String occupation,
-    String title) async {
-  String? uid = await getUIDByFirebaseUID(firebaseUID);
-  String url = dbUrl + "users/$uid.json";
+    String bio_one,
+    String bio_two,
+    String specialty,
+    String cover_photos,
+    String gymId,
+    String profileDescription,
+    String socialsInstagram,
+    String socialsFacebook,
+    String socialsX,
+    String socialsWhatsapp,
+    String socialsTiktok,
+    String socialsRednote,
+    String socialsLinkedin,
+    String socialsViber) async {
+  String firebaseUID = FirebaseAuth.instance.currentUser!.uid.toString();
+  String url = dbUrl + "gym_trainer_profile/$firebaseUID.json";
+
+  String date_time_added =
+      DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now());
   try {
     final response = await http.patch(Uri.parse(url),
         body: json.encode({
-          "username": username,
-          "firstname": firstname,
-          "middlename": middlename,
-          "lastname": lastname,
-          "phone": phone,
-          "title": title,
-          "occupation": occupation
+          "bio_one": bio_one,
+          "bio_two": bio_two,
+          "specialty": specialty,
+          "cover_photos": cover_photos,
+          "date_time_added": date_time_added,
+          "date_time_last_updated": "",
+          "firebase_uid": firebaseUID,
+          "gym_id": gymId,
+          "gym_trainer_profile_id": firebaseUID,
+          "profile_description": profileDescription,
+          "socials_facebook": socialsFacebook,
+          "socials_instagram": socialsInstagram,
+          "socials_x": socialsX,
+          "socials_whatsapp": socialsWhatsapp,
+          "socials_tiktok": socialsTiktok,
+          "socials_rednote": socialsRednote,
+          "socials_linkedin": socialsLinkedin,
+          "socials_viber": socialsViber
         }));
   } catch (error) {
     throw error;
@@ -91,17 +111,24 @@ Future<String> getUIDByFirebaseUID(String firebaseUID) async {
 } // getUIDByFirebaseUID
 
 class _editTrainerDetailsState extends State<EditTrainerDetails> {
-  TextEditingController textFirstnameController = new TextEditingController();
-  TextEditingController textMiddlenameController = new TextEditingController();
-  TextEditingController textLastnameController = new TextEditingController();
-  TextEditingController textExtnameController = new TextEditingController();
-  TextEditingController textOccupationController = new TextEditingController();
-  TextEditingController textPhoneController = new TextEditingController();
-  TextEditingController textTitleController = new TextEditingController();
-  TextEditingController textUsernameController = new TextEditingController();
+  TextEditingController textLongBioController = new TextEditingController();
+  TextEditingController textShortBioController = new TextEditingController();
 
   String? firebaseUID;
   String? roleId;
+
+  String? specialtyValues;
+  String? coverPhotosValues;
+  String? gymId;
+  String? profileDescriptionValue;
+  String? socialsInstagramValue;
+  String? socialsFacebookValue;
+  String? socialsXValue;
+  String? socialsWhatsappValue;
+  String? socialsTiktokValue;
+  String? socialsRednoteValue;
+  String? socialsLinkedinValue;
+  String? socialsViberValue;
 
   void initState() {
     super.initState();
@@ -152,36 +179,62 @@ class _editTrainerDetailsState extends State<EditTrainerDetails> {
     });
   } // getUsers
 
+  Future<List<GymTrainerProfileClass>> listGymTrainerProfile() async {
+    String firebaseUID = FirebaseAuth.instance.currentUser!.uid.toString();
+    List<GymTrainerProfileClass> listGymTrainerProfileData = [];
+    String url = dbUrl + "gym_trainer_profile.json";
+    try {
+      final response = await http.get(Uri.parse(url));
+      final extractedData = json.decode(response.body) as Map<String, dynamic>;
+      if (extractedData == Null ||
+          extractedData == null ||
+          response.body.isEmpty) {
+        return [];
+      }
+
+      extractedData.forEach((key, json) {
+        String trainerID = json['firebase_uid'] ?? "";
+
+        if (trainerID == firebaseUID) {
+          listGymTrainerProfileData.add(GymTrainerProfileClass(
+              gym_trainer_profile_id: json['gym_trainer_profile_id'] ?? "",
+              gym_id: json['gym_id'] ?? "",
+              specialty: json['specialty'] ?? "",
+              bio_one: json['bio_one'],
+              bio_two: json['bio_two'],
+              socials_facebook: json['socials_facebook'] ?? "",
+              socials_linkedin: json['socials_linkedin'] ?? "",
+              socials_instagram: json['socials_instagram'] ?? "",
+              socials_rednote: json['socials_rednote'] ?? "",
+              socials_tiktok: json['socials_tiktok'] ?? "",
+              socials_whatsapp: json['socials_whatsapp'] ?? "",
+              socials_viber: json['socials_viber'] ?? "",
+              socials_x: json['socials_x'] ?? "",
+              firebase_uid: json['firebase_uid'] ?? "",
+              date_time_added: json['date_time_added'] ?? "",
+              date_time_last_updated: json['date_time_last_updated'] ?? "",
+              cover_photos: json['cover_photos'] ?? "",
+              profile_description: json['profile_description'] ?? ""));
+        }
+      });
+    } catch (error) {
+      throw error;
+    }
+
+    return listGymTrainerProfileData;
+  } // listGymTrainerProfile
+
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
             centerTitle: true,
-            title: Text("Edit Details", style: TextStyle(fontSize: 16)),
+            title: Text("Edit Profile Details", style: TextStyle(fontSize: 16)),
             leading: GestureDetector(
                 onTap: () {
-                  if (roleId == "1") {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) {
-                      return UserMainMenu(
-                          selectedInitIndex: 4, subSelectedInitIndex: 0);
-                    }));
-                  }
-
-                  if (roleId == "2") {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) {
-                      return const InstructorMainMenu(
-                          selectedInitIndex: 4, subSelectedInitIndex: 10);
-                    }));
-
-                    if (roleId == "3") {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (context) {
-                        return const AdminMainMenu(
-                            selectedInitIndex: 0, subSelectedInitIndex: 101);
-                      }));
-                    }
-                  }
+                  Navigator.push(context, MaterialPageRoute(builder: (context) {
+                    return const InstructorMainMenu(
+                        selectedInitIndex: 4, subSelectedInitIndex: 0);
+                  }));
                 },
                 child: Container(
                     padding: const EdgeInsets.all(5),
@@ -195,90 +248,41 @@ class _editTrainerDetailsState extends State<EditTrainerDetails> {
                         color: Color.fromARGB(199, 118, 60, 180))))),
         body: SafeArea(
             child: StreamBuilder(
-                stream: getUsers(firebaseUID ?? ""),
+                stream: listGymTrainerProfile().asStream(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return Center(child: CircularProgressIndicator());
+                    return Center(
+                        child: Center(
+                            child: Text("No trainer profile available")));
                   }
 
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   }
-                  textUsernameController.text = snapshot.data![0].username;
-                  textFirstnameController.text = snapshot.data![0].firstname;
-                  textMiddlenameController.text = snapshot.data![0].middlename;
-                  textLastnameController.text = snapshot.data![0].lastname;
-                  textExtnameController.text = snapshot.data![0].ext;
-                  textPhoneController.text = snapshot.data![0].phone;
-                  textOccupationController.text = snapshot.data![0].occupation;
-                  textTitleController.text = snapshot.data![0].title;
+
+                  if (snapshot.data!.length > 0) {
+                    textLongBioController.text = snapshot.data![0].bio_one;
+                    textShortBioController.text = snapshot.data![0].bio_two;
+                  }
 
                   return ListView(children: [
                     SizedBox(height: 25),
                     Container(
                         child: Column(children: [
                       TextFieldCustom(
-                          textController: textUsernameController,
+                          textController: textLongBioController,
                           obscure_text: false,
-                          hint_text_value: "Username",
+                          hint_text_value: "Bio (Tell about yourself)",
                           iconPrefix: const Icon(Icons.person_rounded,
                               color: Colors.black12),
                           iconSuffix: const Icon(Icons.remove_red_eye_rounded,
                               color: Colors.transparent)),
                       TextFieldCustom(
-                          textController: textFirstnameController,
-                          obscure_text: false,
-                          hint_text_value: "First Name",
-                          iconPrefix: const Icon(Icons.person_rounded,
-                              color: Colors.black12),
-                          iconSuffix: const Icon(Icons.remove_red_eye_rounded,
-                              color: Colors.transparent)),
-                      TextFieldCustom(
-                          textController: textMiddlenameController,
-                          obscure_text: false,
-                          hint_text_value: "Middle Name",
-                          iconPrefix: const Icon(Icons.person_rounded,
-                              color: Colors.black12),
-                          iconSuffix: const Icon(Icons.remove_red_eye_rounded,
-                              color: Colors.transparent)),
-                      TextFieldCustom(
-                          textController: textLastnameController,
-                          obscure_text: false,
-                          hint_text_value: "Last Name",
-                          iconPrefix: const Icon(Icons.person_rounded,
-                              color: Colors.black12),
-                          iconSuffix: const Icon(Icons.remove_red_eye_rounded,
-                              color: Colors.transparent)),
-                      TextFieldCustom(
-                          textController: textExtnameController,
+                          textController: textShortBioController,
                           obscure_text: false,
                           hint_text_value:
-                              "Extension Name (e.g. Jr, Sr, III ...)",
+                              "Short Bio (e.g Years of experience, Title or Personality etc.)",
                           iconPrefix: const Icon(Icons.person_rounded,
-                              color: Colors.black12),
-                          iconSuffix: const Icon(Icons.remove_red_eye_rounded,
-                              color: Colors.transparent)),
-                      TextFieldPhone(
-                          textController: textPhoneController,
-                          obscure_text: false,
-                          hint_text_value: "Phone",
-                          iconPrefix: const Icon(Icons.phone_android,
-                              color: Colors.black12),
-                          iconSuffix: const Icon(Icons.phone,
-                              color: Colors.transparent)),
-                      TextFieldCustom(
-                          textController: textOccupationController,
-                          obscure_text: false,
-                          hint_text_value: "Occupation",
-                          iconPrefix:
-                              const Icon(Icons.work, color: Colors.black12),
-                          iconSuffix: const Icon(Icons.remove_red_eye_rounded,
-                              color: Colors.transparent)),
-                      TextFieldCustom(
-                          textController: textTitleController,
-                          obscure_text: false,
-                          hint_text_value: "Title",
-                          iconPrefix: const Icon(Icons.work_history,
                               color: Colors.black12),
                           iconSuffix: const Icon(Icons.remove_red_eye_rounded,
                               color: Colors.transparent)),
@@ -286,52 +290,33 @@ class _editTrainerDetailsState extends State<EditTrainerDetails> {
                       GestureDetector(
                         onTap: () {
                           updateUserDetails(
-                              firebaseUID ?? "",
-                              textUsernameController.text,
-                              textPhoneController.text,
-                              textFirstnameController.text,
-                              textMiddlenameController.text,
-                              textLastnameController.text,
-                              textOccupationController.text,
-                              textTitleController.text);
+                              textLongBioController.text,
+                              textShortBioController.text,
+                              specialtyValues ?? "",
+                              coverPhotosValues ?? "",
+                              gymId ?? "",
+                              profileDescriptionValue ?? "",
+                              socialsInstagramValue ?? "",
+                              socialsFacebookValue ?? "",
+                              socialsXValue ?? "",
+                              socialsWhatsappValue ?? "",
+                              socialsTiktokValue ?? "",
+                              socialsRednoteValue ?? "",
+                              socialsLinkedinValue ?? "",
+                              socialsViberValue ?? "");
 
-                          textFirstnameController.text = "";
-                          textMiddlenameController.text = "";
-                          textLastnameController.text = "";
-                          textUsernameController.text = "";
-                          textOccupationController.text = "";
-                          textTitleController.text = "";
+                          textLongBioController.text = "";
+                          textShortBioController.text = "";
 
-                          if (roleId == "1") {
-                            Navigator.push(context,
-                                MaterialPageRoute(builder: (context) {
-                              return UserMainMenu(
-                                  selectedInitIndex: 4,
-                                  subSelectedInitIndex: 0);
-                            }));
-                          }
-
-                          if (roleId == "2") {
-                            Navigator.push(context,
-                                MaterialPageRoute(builder: (context) {
-                              return const InstructorMainMenu(
-                                  selectedInitIndex: 4,
-                                  subSelectedInitIndex: 10);
-                            }));
-                          }
-
-                          if (roleId == "3") {
-                            Navigator.push(context,
-                                MaterialPageRoute(builder: (context) {
-                              return const AdminMainMenu(
-                                  selectedInitIndex: 0,
-                                  subSelectedInitIndex: 101);
-                            }));
-                          }
+                          Navigator.push(context,
+                              MaterialPageRoute(builder: (context) {
+                            return InstructorMainMenu(
+                                selectedInitIndex: 4, subSelectedInitIndex: 0);
+                          }));
 
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                               content: Text(
-                                  "Personal Details Successfully updated!")));
+                                  "Trainer Details Successfully Updated!")));
                         },
                         child: Container(
                             alignment: Alignment.center,

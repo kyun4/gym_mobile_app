@@ -53,9 +53,9 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-      apiKey: "firebaseapikey",
-      appId: "firebaseappid",
-      messagingSenderId: "firebase-messagesenderid",
-      projectId: "firebaseproject-id",
-      storageBucket: "firebasestorage-bucket");
+      apiKey: 'apikey',
+      appId: 'appid',
+      messagingSenderId: 'messagingsenderid',
+      projectId: 'projectid',
+      storageBucket: 'storagebucketid');
 }

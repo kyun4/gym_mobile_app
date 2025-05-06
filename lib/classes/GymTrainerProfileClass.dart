@@ -2,6 +2,8 @@ class GymTrainerProfileClass {
   final String gym_trainer_profile_id;
   final String gym_id;
   final String specialty;
+  final String bio_one;
+  final String bio_two;
   final String socials_facebook;
   final String socials_linkedin;
   final String socials_instagram;
@@ -20,6 +22,8 @@ class GymTrainerProfileClass {
       {required this.gym_trainer_profile_id,
       required this.gym_id,
       required this.specialty,
+      required this.bio_one,
+      required this.bio_two,
       required this.socials_facebook,
       required this.socials_linkedin,
       required this.socials_instagram,
@@ -39,6 +43,8 @@ class GymTrainerProfileClass {
       gym_trainer_profile_id: gym_trainer_profile_id,
       gym_id: gym_id,
       specialty: specialty,
+      bio_one: bio_one,
+      bio_two: bio_two,
       socials_facebook: socials_facebook,
       socials_linkedin: socials_linkedin,
       socials_instagram: socials_instagram,
@@ -60,6 +66,8 @@ class GymTrainerProfileClass {
         gym_trainer_profile_id: json['gym_trainer_profile_id'],
         gym_id: json['gym_id'],
         specialty: json['specialty'],
+        bio_one: json['bio_one'],
+        bio_two: json['bio_two'],
         socials_facebook: json['socials_facebook'],
         socials_linkedin: json['socials_linkedin'],
         socials_instagram: json['socials_instagram'],
