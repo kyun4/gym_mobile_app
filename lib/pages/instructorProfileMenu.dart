@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -84,6 +86,13 @@ Future<void> removeSession(String key) async {
   SharedPreferences ref = await SharedPreferences.getInstance();
   ref.remove(key);
 } // removeSession
+
+bool isNumeric(String? s) {
+  if (s == null) {
+    return false;
+  }
+  return num.tryParse(s) != null;
+}
 
 class _instructorProfileMenuState extends State<InstructorProfileMenu> {
   String? firebaseUID;
@@ -424,7 +433,12 @@ class _instructorProfileMenuState extends State<InstructorProfileMenu> {
                                             fontWeight: FontWeight.w400)),
                                     Text(
                                         trainerBalance != null
-                                            ? "PHP " + trainerBalance!
+                                            ? isNumeric(trainerBalance) == true
+                                                ? "PHP " +
+                                                    double.parse(
+                                                            trainerBalance!)
+                                                        .toStringAsFixed(2)
+                                                : "--- --.--"
                                             : "--- --.--",
                                         style: TextStyle(
                                             fontSize: 32,

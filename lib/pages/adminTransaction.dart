@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fitup/classes/TransactionClass.dart';
 import 'package:fitup/classes/GymUserSessionClass.dart';
+import 'package:fitup/classes/GymTrainerClasses.dart';
+import 'package:fitup/classes/GymSessionClass.dart';
 import 'package:fitup/classes/UserDetails.dart';
 import 'package:fitup/classes/AdminSettings.dart';
 
@@ -98,6 +100,79 @@ Future<List<GymUserSessionClass>> getUserSessions() async {
 
   return listData;
 } //  getUserSessions()
+
+Future<List<GymSessionClass>> getGymSessionClass() async {
+  List<GymSessionClass> listData = [];
+
+  String url = dbUrl + "gym_session_users.json";
+  try {
+    final response = await http.get(Uri.parse(url));
+    final extractedData = json.decode(response.body) as Map<String, dynamic>;
+
+    if (extractedData == null || response.body.isEmpty) {
+      return [];
+    }
+    extractedData.forEach((key, json) {
+      listData.add(GymSessionClass(
+          gym_session_id: json['gym_session_id'] ?? "",
+          gym_class_id: json['gym_class_id'] ?? "",
+          for_date_schedule: json['for_date_schedule'] ?? "",
+          for_day_schedule: json['for_day_schedule'] ?? "",
+          for_time_range_schedule: json['for_time_range_schedule'] ?? "",
+          price_per_day: json['price_per_day'] ?? "",
+          trainer_id: json['trainer_id'] ?? "",
+          date_time_actual_finished: json['date_time_actual_finished'] ?? "",
+          status: json['status'] ?? ""));
+    });
+  } catch (error) {
+    throw error;
+  }
+
+  return listData;
+} //  getSessionClass()
+
+Future<List<GymTrainerClasses>> getGymTrainerClasses() async {
+  List<GymTrainerClasses> listData = [];
+
+  String url = dbUrl + "gym_trainer_classes.json";
+  try {
+    final response = await http.get(Uri.parse(url));
+    final extractedData = json.decode(response.body) as Map<String, dynamic>;
+
+    if (extractedData == null || response.body.isEmpty) {
+      return [];
+    }
+    extractedData.forEach((key, json) {
+      listData.add(GymTrainerClasses(
+          gym_trainer_class_id: json['gym_trainer_class_id'] ?? "",
+          training_category_id: json['training_category_id'] ?? "",
+          class_name: json['class_name'] ?? "",
+          class_description: json['class_description'] ?? "",
+          price_per_day: json['price_per_day'] ?? "",
+          cover_photo_url: json['cover_photo_url'] ?? "",
+          best_for: json['best_for'] ?? "",
+          exercise_id: json['exercise_id'] ?? "",
+          date_start: json['date_start'] ?? "",
+          date_end: json['date_end'] ?? "",
+          duration_in_mins: json['duration_in_mins'] ?? "",
+          firebase_uid: json['firebase_uid'] ?? "",
+          date_time_added: json['date_time_added'] ?? "",
+          date_time_last_updated: json['date_time_last_updated'] ?? "",
+          is_active: json['is_active'] ?? "",
+          is_done: json['is_done'] ?? "",
+          schedule_times: json['schedule_times'] ?? "",
+          scheduled_days: json['scheduled_days'] ?? "",
+          session_setup: json['session_setup'] ?? "",
+          level: json['level'] ?? "",
+          users_per_class_limit: json['users_per_class_limit'] ?? "",
+          status: json['status'] ?? ""));
+    });
+  } catch (error) {
+    throw error;
+  }
+
+  return listData;
+} //  getGymTrainerClasses()
 
 Future<List<UserDetails>> getAllUsers() async {
   List<UserDetails> listUsersData = [];
@@ -391,6 +466,29 @@ void updateFitUpWallet(String remitAmount) async {
   }
 } // updateFitUpWallet
 
+Future<String> getTrainerWallet(String firebaseUID) async {
+  String currentBalance = "";
+  String url = dbUrl + "trainer_wallet.json";
+  try {
+    final response = await http.get(Uri.parse(url));
+    final extractedData = json.decode(response.body) as Map<String, dynamic>;
+
+    if (extractedData == Null || response.body.isEmpty) {
+      return "0";
+    }
+
+    extractedData.forEach((key, json) {
+      String trainerWalletId = key;
+      if (firebaseUID == trainerWalletId) {
+        currentBalance = json['current_balance'] ?? "0";
+      }
+    });
+  } catch (error) {
+    return "0";
+  }
+  return currentBalance;
+} // getTrainerWallet
+
 Future<String> getFitUpWallet() async {
   String currentBalance = "";
   String url = dbUrl + "fitup_wallet.json";
@@ -434,36 +532,20 @@ void updateTrainerWallet(String trainerFirebaseUID, String addedBalance) async {
   }
 } // updateTrainerWallet
 
-Future<String> getTrainerWallet(String firebaseUID) async {
-  String? currentBalance;
-  String url = dbUrl + "trainer_wallet/$firebaseUID.json";
-  try {
-    final response = await http.get(Uri.parse(url));
-    final extractedData = json.decode(response.body) as Map<String, dynamic>;
-
-    if (extractedData == Null || response.body.isEmpty) {
-      return "0";
-    }
-
-    extractedData.forEach((key, json) {
-      currentBalance = json['current_balance'] ?? "0";
-    });
-  } catch (error) {
-    return "0";
-  }
-  return currentBalance ?? "0";
-} // getTrainerWallet
-
 class _adminTransactionState extends State<AdminTransaction> {
   List<GymUserSessionClass> listGymUserSession = [];
   List<UserDetails> listUsers = [];
   List<AdminSettings> listAdminSettings = [];
+  List<GymTrainerClasses> listGymTrainerClassesData = [];
+  List<GymSessionClass> listGymSessionClassesData = [];
 
   void initState() {
     super.initState();
     getUserSessionClass();
     getUsersData();
     getAdminSettingsData();
+    getGymTrainerClassesData();
+    getGymSessionClasses();
   }
 
   void getUserSessionClass() async {
@@ -473,12 +555,27 @@ class _adminTransactionState extends State<AdminTransaction> {
     });
   } // getUserSessionClass
 
+  void getGymSessionClasses() async {
+    List<GymSessionClass> gymSessionClassesData = await getGymSessionClass();
+    setState(() {
+      listGymSessionClassesData = gymSessionClassesData;
+    });
+  } // getGymSessionClasses()
+
   void getUsersData() async {
     List<UserDetails> listUserData = await getAllUsers();
     setState(() {
       listUsers = listUserData;
     });
   } // getUsersData
+
+  void getGymTrainerClassesData() async {
+    List<GymTrainerClasses> listGymTrainerClassesValues =
+        await getGymTrainerClasses();
+    setState(() {
+      listGymTrainerClassesData = listGymTrainerClassesValues;
+    });
+  } // getGymTrainerClassesData
 
   void getAdminSettingsData() async {
     List<AdminSettings> listAdminSettingsData =
@@ -577,7 +674,7 @@ class _adminTransactionState extends State<AdminTransaction> {
                         Container(
                           height: MediaQuery.of(context).size.height * 0.5,
                           child: ListView(children: [
-                            Image.network(receiptUrl ?? "",
+                            Image.network(receiptUrl,
                                 height: 200,
                                 width: MediaQuery.of(context).size.width - 250,
                                 fit: BoxFit.cover,
@@ -790,6 +887,75 @@ class _adminTransactionState extends State<AdminTransaction> {
                                     .gym_user_session_id
                                 : "";
 
+                            String gymUserSessionClassId = listGymUserSession
+                                        .where((userSessionData) =>
+                                            userSessionData.gym_session_id ==
+                                            gymSessionId)
+                                        .toList()
+                                        .length >
+                                    0
+                                ? listGymUserSession
+                                    .where((userSessionData) =>
+                                        userSessionData.gym_session_id ==
+                                        gymSessionId)
+                                    .toList()[0]
+                                    .gym_class_id
+                                : "";
+
+                            String gymDate = listGymSessionClassesData
+                                        .where((gymSessionData) =>
+                                            gymSessionData.gym_session_id ==
+                                            gymSessionId)
+                                        .toList()
+                                        .length >
+                                    0
+                                ? listGymSessionClassesData
+                                    .where((gymSessionData) =>
+                                        gymSessionData.gym_session_id ==
+                                        gymSessionId)
+                                    .toList()[0]
+                                    .for_date_schedule
+                                : "";
+
+                            String gymTimeRange = listGymSessionClassesData
+                                        .where((gymSessionData) =>
+                                            gymSessionData.gym_session_id ==
+                                            gymSessionId)
+                                        .toList()
+                                        .length >
+                                    0
+                                ? listGymSessionClassesData
+                                    .where((gymSessionData) =>
+                                        gymSessionData.gym_session_id ==
+                                        gymSessionId)
+                                    .toList()[0]
+                                    .for_time_range_schedule
+                                : "";
+
+                            String gymClassName = listGymTrainerClassesData
+                                        .where((gymTrainerData) =>
+                                            gymTrainerData
+                                                .gym_trainer_class_id ==
+                                            gymUserSessionClassId)
+                                        .toList()
+                                        .length >
+                                    0
+                                ? listGymTrainerClassesData
+                                    .where((gymTrainerData) =>
+                                        gymTrainerData.gym_trainer_class_id ==
+                                        gymUserSessionClassId)
+                                    .toList()[0]
+                                    .class_name
+                                : "";
+
+                            String trainerFullname =
+                                trainerLastname.toUpperCase() +
+                                    " " +
+                                    trainerFirstname.toUpperCase();
+
+                            String gymSessionLabel =
+                                "Gym Session of Trainer\n$trainerFullname\nfor $gymClassName on $gymDate ($gymTimeRange)";
+
                             String fullname = "";
                             String operationSymbol = "";
 
@@ -881,7 +1047,7 @@ class _adminTransactionState extends State<AdminTransaction> {
                                         subscriptionPlan,
                                         gymUserSessionIdValue,
                                         gymSessionId,
-                                        gymSessionId,
+                                        gymSessionLabel,
                                         receiptUrl,
                                         "",
                                         totalPrice,

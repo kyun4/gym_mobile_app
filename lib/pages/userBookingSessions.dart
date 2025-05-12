@@ -214,60 +214,6 @@ class _userBookingSessionsState extends State<UserBookingSessions> {
         classLimit,
         mayaAdmin;
 
-    Future<XFile?> _pickImage() async {
-      final ImagePicker _picker = ImagePicker();
-      XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-      return image;
-    }
-
-    Future<String?> _uploadImage(XFile image) async {
-      String firebaseUID = FirebaseAuth.instance.currentUser!.uid.toString();
-      try {
-        FirebaseStorage storage = FirebaseStorage.instance;
-
-        final uniqueId = new Uuid();
-        String uniqueIdValue = uniqueId.v4();
-        String receiptFileName = firebaseUID + "_" + uniqueIdValue + "";
-
-        Reference ref =
-            storage.ref().child("receipts/" + receiptFileName + ".jpg");
-        TaskSnapshot uploadTask = await ref.putFile(File(image.path));
-
-        UploadTask uploadTasking = ref.putFile(File(image.path));
-
-        // Listen to upload progress
-        uploadTasking.snapshotEvents.listen((TaskSnapshot snapshot) {
-          double progress = snapshot.bytesTransferred / snapshot.totalBytes;
-          setState(() {
-            _progress = progress; // Update the progress value
-          });
-        });
-
-        String downloadURL = await uploadTask.ref.getDownloadURL();
-
-        return downloadURL;
-      } catch (e) {
-        print('Error uploading image: $e');
-        return null;
-      }
-    } // _uploadImage
-
-    Future<void> _pickAndUploadImage() async {
-      // Pick an image
-      XFile? image = await _pickImage();
-      if (image != null) {
-        // Upload the image and get the download URL
-        String? downloadURL = await _uploadImage(image);
-        if (downloadURL != null) {
-          setState(() {
-            _image = image;
-            receiptPhoto = downloadURL;
-            _progress = 0.0;
-          });
-        }
-      }
-    } // _pickAndUploadImage
-
     void initState() {
       super.initState();
     }
@@ -277,6 +223,63 @@ class _userBookingSessionsState extends State<UserBookingSessions> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            Future<XFile?> _pickImage() async {
+              final ImagePicker _picker = ImagePicker();
+              XFile? image =
+                  await _picker.pickImage(source: ImageSource.gallery);
+              return image;
+            }
+
+            Future<String?> _uploadImage(XFile image) async {
+              String firebaseUID =
+                  FirebaseAuth.instance.currentUser!.uid.toString();
+              try {
+                FirebaseStorage storage = FirebaseStorage.instance;
+
+                final uniqueId = new Uuid();
+                String uniqueIdValue = uniqueId.v4();
+                String receiptFileName = firebaseUID + "_" + uniqueIdValue + "";
+
+                Reference ref =
+                    storage.ref().child("receipts/" + receiptFileName + ".jpg");
+                TaskSnapshot uploadTask = await ref.putFile(File(image.path));
+
+                UploadTask uploadTasking = ref.putFile(File(image.path));
+
+                // Listen to upload progress
+                uploadTasking.snapshotEvents.listen((TaskSnapshot snapshot) {
+                  double progress =
+                      snapshot.bytesTransferred / snapshot.totalBytes;
+                  setState(() {
+                    _progress = progress; // Update the progress value
+                  });
+                });
+
+                String downloadURL = await uploadTask.ref.getDownloadURL();
+
+                return downloadURL;
+              } catch (e) {
+                print('Error uploading image: $e');
+                return null;
+              }
+            } // _uploadImage
+
+            Future<void> _pickAndUploadImage() async {
+              // Pick an image
+              XFile? image = await _pickImage();
+              if (image != null) {
+                // Upload the image and get the download URL
+                String? downloadURL = await _uploadImage(image);
+                if (downloadURL != null) {
+                  setState(() {
+                    _image = image;
+                    receiptPhoto = downloadURL;
+                    _progress = 0.0;
+                  });
+                }
+              }
+            } // _pickAndUploadImage
+
             return AlertDialog(
               title: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
