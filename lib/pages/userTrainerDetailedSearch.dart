@@ -111,14 +111,17 @@ Stream<List<GymTrainerClasses>> getStreamTrainerClasses() {
 Future<List<UserGymClasses>> getGymUserDetails() async {
   final List<UserGymClasses> listData = [];
   String firebaseUserId = FirebaseAuth.instance.currentUser!.uid.toString();
-  String url =
-      "https://fitup-43ee3-default-rtdb.firebaseio.com/gym_user_classes.json";
+  String url = dbUrl + "gym_user_classes.json";
 
   try {
     final response = await http.get(Uri.parse(url));
     final extractedData = json.decode(response.body) as Map<String, dynamic>;
 
-    if (extractedData == null || response.body.isEmpty) {}
+    if (extractedData == null ||
+        extractedData == Null ||
+        response.body.isEmpty) {
+      return [];
+    }
 
     extractedData.forEach((data, json) {
       if (json['firebase_uid'] == firebaseUserId) {
@@ -147,7 +150,7 @@ Future<List<UserGymClasses>> getGymUserDetails() async {
 Future<List<Users>> getTrainerDetails() async {
   final List<Users> listUsers = [];
 
-  String url = "https://fitup-43ee3-default-rtdb.firebaseio.com/users.json";
+  String url = dbUrl + "users.json";
 
   try {
     final response = await http.get(Uri.parse(url));
@@ -156,25 +159,23 @@ Future<List<Users>> getTrainerDetails() async {
     if (extractedData == null || response.body.isEmpty) {}
 
     extractedData.forEach((userId, userData) {
-      if (userData['role'] == "2") {
-        listUsers.add(Users(
-            firebase_uid: userData['firebase_uid'] ?? '',
-            username: userData['username'] ?? '',
-            firstname: userData['firstname'] ?? '',
-            middlename: userData['middlename'] ?? '',
-            lastname: userData['lastname'] ?? '',
-            ext: userData['ext'] ?? '',
-            role: userData['role'] ?? '',
-            phone: userData['phone'] ?? '',
-            email: userData['email'] ?? '',
-            otp: userData['otp'] ?? '',
-            email_verified: userData['email_verified'] ?? '',
-            occupation: userData['occupation'] ?? '',
-            title: userData['title'] ?? '',
-            date_time_registered: userData['date_time_registered'] ?? '',
-            date_time_premium_activated: userData['date_time_activated'] ?? '',
-            date_time_membership: userData['date_time_membership'] ?? ''));
-      }
+      listUsers.add(Users(
+          firebase_uid: userData['firebase_uid'] ?? '',
+          username: userData['username'] ?? '',
+          firstname: userData['firstname'] ?? '',
+          middlename: userData['middlename'] ?? '',
+          lastname: userData['lastname'] ?? '',
+          ext: userData['ext'] ?? '',
+          role: userData['role'] ?? '',
+          phone: userData['phone'] ?? '',
+          email: userData['email'] ?? '',
+          otp: userData['otp'] ?? '',
+          email_verified: userData['email_verified'] ?? '',
+          occupation: userData['occupation'] ?? '',
+          title: userData['title'] ?? '',
+          date_time_registered: userData['date_time_registered'] ?? '',
+          date_time_premium_activated: userData['date_time_activated'] ?? '',
+          date_time_membership: userData['date_time_membership'] ?? ''));
     });
   } catch (error) {
     throw error;
@@ -296,262 +297,265 @@ class _userTrainerDetailedSearch extends State<UserTrainerDetailedSearch> {
                       child: StreamBuilder(
                           stream: getStreamTrainerClasses(),
                           builder: (context, snapshot) {
+                            if (snapshot.hasError) {
+                              return Center(
+                                  child: Text("No gym classes data available"));
+                            }
+
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
                               return Center(child: CircularProgressIndicator());
                             }
+                            return Scaffold(
+                              body: ListView.builder(
+                                  itemCount: snapshot.data!.length,
+                                  itemBuilder: (context, index) {
+                                    final userGymData = snapshot.data!;
+                                    final gymData = userGymData[index];
+                                    String exercise_id_from_cardview =
+                                        gymData.exercise_id;
+                                    String trainerFirebaseUID =
+                                        gymData.firebase_uid;
+                                    String cover_photo_url =
+                                        gymData.cover_photo_url;
+                                    String className = gymData.class_name;
+                                    String classDescription =
+                                        gymData.class_description;
+                                    String pricePerDay = gymData.price_per_day;
+                                    String scheduledDays =
+                                        gymData.scheduled_days;
+                                    String gymTrainerClassId =
+                                        gymData.gym_trainer_class_id;
 
-                            if (!snapshot.hasData) {
-                              return Center(child: CircularProgressIndicator());
-                            }
+                                    int hasAlreadyBooked = listGymUserClasses
+                                        .where((listGymUserData) =>
+                                            listGymUserData.gym_class_id ==
+                                            gymTrainerClassId)
+                                        .toList()
+                                        .length;
 
-                            return !snapshot.hasError
-                                ? Scaffold(
-                                    body: ListView.builder(
-                                        itemCount: snapshot.data!.length,
-                                        itemBuilder: (context, index) {
-                                          final userGymData = snapshot.data!;
-                                          final gymData = userGymData[index];
-                                          String exercise_id_from_cardview =
-                                              gymData.exercise_id;
-                                          String trainerFirebaseUID =
-                                              gymData.firebase_uid;
-                                          String cover_photo_url =
-                                              gymData.cover_photo_url;
-                                          String className = gymData.class_name;
-                                          String classDescription =
-                                              gymData.class_description;
-                                          String pricePerDay =
-                                              gymData.price_per_day;
-                                          String scheduledDays =
-                                              gymData.scheduled_days;
-                                          String gymTrainerClassId =
-                                              gymData.gym_trainer_class_id;
+                                    String username = listTrainerDetails
+                                                .where((trainerData) =>
+                                                    trainerData.firebase_uid ==
+                                                    trainerFirebaseUID)
+                                                .toList()
+                                                .length >
+                                            0
+                                        ? listTrainerDetails
+                                            .where((trainerData) =>
+                                                trainerData.firebase_uid ==
+                                                trainerFirebaseUID)
+                                            .toList()[0]
+                                            .username
+                                        : "";
 
-                                          int hasAlreadyBooked =
-                                              listGymUserClasses
-                                                  .where((listGymUserData) =>
-                                                      listGymUserData
-                                                          .gym_class_id ==
-                                                      gymTrainerClassId)
-                                                  .toList()
-                                                  .length;
+                                    String firstname = listTrainerDetails
+                                                .where((trainerData) =>
+                                                    trainerData.firebase_uid ==
+                                                    trainerFirebaseUID)
+                                                .toList()
+                                                .length >
+                                            0
+                                        ? listTrainerDetails
+                                            .where((trainerData) =>
+                                                trainerData.firebase_uid ==
+                                                trainerFirebaseUID)
+                                            .toList()[0]
+                                            .firstname
+                                        : "";
 
-                                          String username = listTrainerDetails
-                                                      .where((trainerData) =>
-                                                          trainerData
-                                                              .firebase_uid ==
-                                                          trainerFirebaseUID)
-                                                      .toList()
-                                                      .length >
-                                                  0
-                                              ? listTrainerDetails
-                                                  .where((trainerData) =>
-                                                      trainerData
-                                                          .firebase_uid ==
-                                                      trainerFirebaseUID)
-                                                  .toList()[0]
-                                                  .username
-                                              : "";
+                                    String fullname = firstname;
 
-                                          String firstname = listTrainerDetails
-                                                      .where((trainerData) =>
-                                                          trainerData
-                                                              .firebase_uid ==
-                                                          trainerFirebaseUID)
-                                                      .toList()
-                                                      .length >
-                                                  0
-                                              ? listTrainerDetails
-                                                  .where((trainerData) =>
-                                                      trainerData
-                                                          .firebase_uid ==
-                                                      trainerFirebaseUID)
-                                                  .toList()[0]
-                                                  .firstname
-                                              : "";
-
-                                          String fullname = firstname;
-
-                                          return GestureDetector(
-                                            onTap: () {
-                                              if (hasAlreadyBooked == 1) {
-                                              } else {
-                                                setSession(
-                                                    "receiverName", fullname);
-                                                setSession("trainerUsername",
-                                                    username);
-                                                setSession("trainerFirebaseUid",
-                                                    trainerFirebaseUID);
-                                                Navigator.pushReplacement(
-                                                    context, MaterialPageRoute(
-                                                        builder: (context) {
-                                                  return const UserMainMenu(
-                                                      selectedInitIndex: 1,
-                                                      subSelectedInitIndex: 26);
-                                                }));
-                                              }
-                                            },
-                                            child: Visibility(
-                                              visible: exerciseId ==
-                                                      exercise_id_from_cardview
-                                                  ? true
-                                                  : false,
-                                              child: Container(
-                                                  padding:
-                                                      const EdgeInsets.all(5),
-                                                  margin: const EdgeInsets.only(
-                                                      top: 15,
-                                                      left: 10,
-                                                      right: 10,
-                                                      bottom: 20),
-                                                  decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              10)),
-                                                  child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Center(
-                                                            child: Container(
-                                                          decoration: BoxDecoration(
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          20)),
-                                                          margin:
-                                                              const EdgeInsets
-                                                                  .only(top: 5),
-                                                          child: Image.network(
+                                    return GestureDetector(
+                                      onTap: () {
+                                        if (hasAlreadyBooked == 1) {
+                                        } else {
+                                          setSession("receiverName", fullname);
+                                          setSession(
+                                              "trainerUsername", username);
+                                          setSession("trainerFirebaseUid",
+                                              trainerFirebaseUID);
+                                          Navigator.pushReplacement(context,
+                                              MaterialPageRoute(
+                                                  builder: (context) {
+                                            return const UserMainMenu(
+                                                selectedInitIndex: 1,
+                                                subSelectedInitIndex: 26);
+                                          }));
+                                        }
+                                      },
+                                      child: Visibility(
+                                        visible: exerciseId ==
+                                                exercise_id_from_cardview
+                                            ? true
+                                            : false,
+                                        child: Container(
+                                            padding: const EdgeInsets.all(5),
+                                            margin: const EdgeInsets.only(
+                                                top: 15,
+                                                left: 10,
+                                                right: 10,
+                                                bottom: 20),
+                                            decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(10)),
+                                            child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Center(
+                                                      child: Container(
+                                                    decoration: BoxDecoration(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(20)),
+                                                    margin:
+                                                        const EdgeInsets.only(
+                                                            top: 5),
+                                                    child: Image.network(
+                                                        height: 250,
+                                                        width: MediaQuery.of(
+                                                                    context)
+                                                                .size
+                                                                .width -
+                                                            50,
+                                                        cover_photo_url,
+                                                        errorBuilder: (context,
+                                                            error, StackTrace) {
+                                                      return Center(
+                                                          child: Container(
                                                               height: 250,
                                                               width: MediaQuery.of(
                                                                           context)
                                                                       .size
                                                                       .width -
                                                                   50,
-                                                              cover_photo_url,
-                                                              errorBuilder:
-                                                                  (context,
-                                                                      error,
-                                                                      StackTrace) {
-                                                            return Center(
-                                                                child:
-                                                                    Container(
-                                                                        height:
-                                                                            250,
-                                                                        width: MediaQuery.of(context).size.width -
-                                                                            50,
-                                                                        decoration: BoxDecoration(
-                                                                            border: Border.all(
-                                                                                color: Colors.grey.withOpacity(
-                                                                                    0.2))),
-                                                                        child: Column(
-                                                                            mainAxisAlignment:
-                                                                                MainAxisAlignment.center,
-                                                                            children: [
-                                                                              Icon(Icons.image_not_supported_outlined),
-                                                                              Center(child: Text("Error Loading Image"))
-                                                                            ])));
-                                                          }, loadingBuilder: (context,
-                                                                  Widget child,
-                                                                  ImageChunkEvent?
-                                                                      loadingProgress) {
-                                                            if (loadingProgress ==
-                                                                null) {
-                                                              return child;
-                                                            } else {
-                                                              return Container(
-                                                                height: 250,
-                                                                width: 250,
-                                                                child: Center(
-                                                                    child: CircularProgressIndicator(
-                                                                        value: loadingProgress !=
-                                                                                null
-                                                                            ? loadingProgress.cumulativeBytesLoaded /
-                                                                                (loadingProgress.expectedTotalBytes ?? 1)
-                                                                            : null)),
-                                                              );
-                                                            }
-                                                          }, fit: BoxFit.cover),
-                                                        )),
-                                                        Container(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(20),
-                                                          child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                Row(
-                                                                    mainAxisAlignment:
-                                                                        MainAxisAlignment
-                                                                            .spaceBetween,
-                                                                    children: [
-                                                                      Row(
-                                                                          children: [
-                                                                            Icon(Icons.location_pin,
-                                                                                color: Color.fromARGB(199, 118, 10, 160)),
-                                                                            Text(" $className with ${username}"),
-                                                                          ]),
-                                                                      Row(
-                                                                          children: [
-                                                                            Text("4.8 "),
-                                                                            Icon(Icons.star,
-                                                                                size: 20,
-                                                                                color: Color.fromARGB(199, 118, 10, 160))
-                                                                          ])
-                                                                    ]),
-                                                                SizedBox(
-                                                                    height: 8),
-                                                                hasAlreadyBooked ==
-                                                                        1
-                                                                    ? Text(
-                                                                        " You have already booked this class")
-                                                                    : Visibility(
-                                                                        visible:
-                                                                            false,
+                                                              decoration: BoxDecoration(
+                                                                  border: Border.all(
+                                                                      color: Colors
+                                                                          .grey
+                                                                          .withOpacity(
+                                                                              0.2))),
+                                                              child: Column(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+                                                                  children: [
+                                                                    Icon(Icons
+                                                                        .image_not_supported_outlined),
+                                                                    Center(
                                                                         child: Text(
-                                                                            "")),
-                                                                Text("Location",
-                                                                    style: TextStyle(
-                                                                        fontSize:
-                                                                            12)),
-                                                                Text(
-                                                                    "Date and Time Availability: $scheduledDays",
-                                                                    style: TextStyle(
-                                                                        fontSize:
-                                                                            12)),
-                                                                SizedBox(
-                                                                    height: 8),
-                                                                Row(
-                                                                    mainAxisAlignment:
-                                                                        MainAxisAlignment
-                                                                            .spaceBetween,
-                                                                    children: [
-                                                                      Text(
-                                                                          "PHP $pricePerDay / Day",
-                                                                          style: TextStyle(
-                                                                              fontSize: 12,
-                                                                              fontWeight: FontWeight.bold)),
-                                                                      Text(
-                                                                          "Discounted if booked early",
-                                                                          style: TextStyle(
-                                                                              fontSize: 10,
-                                                                              fontWeight: FontWeight.w300)),
-                                                                    ]),
+                                                                            "Error Loading Image"))
+                                                                  ])));
+                                                    }, loadingBuilder: (context,
+                                                            Widget child,
+                                                            ImageChunkEvent?
+                                                                loadingProgress) {
+                                                      if (loadingProgress ==
+                                                          null) {
+                                                        return child;
+                                                      } else {
+                                                        return Container(
+                                                          height: 250,
+                                                          width: 250,
+                                                          child: Center(
+                                                              child: CircularProgressIndicator(
+                                                                  value: loadingProgress !=
+                                                                          null
+                                                                      ? loadingProgress
+                                                                              .cumulativeBytesLoaded /
+                                                                          (loadingProgress.expectedTotalBytes ??
+                                                                              1)
+                                                                      : null)),
+                                                        );
+                                                      }
+                                                    }, fit: BoxFit.cover),
+                                                  )),
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            20),
+                                                    child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Row(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceBetween,
+                                                              children: [
+                                                                Row(children: [
+                                                                  Icon(
+                                                                      Icons
+                                                                          .location_pin,
+                                                                      color: Color.fromARGB(
+                                                                          199,
+                                                                          118,
+                                                                          10,
+                                                                          160)),
+                                                                  Text(
+                                                                      " $className with ${username}"),
+                                                                ]),
+                                                                Row(children: [
+                                                                  Text("4.8 "),
+                                                                  Icon(
+                                                                      Icons
+                                                                          .star,
+                                                                      size: 20,
+                                                                      color: Color.fromARGB(
+                                                                          199,
+                                                                          118,
+                                                                          10,
+                                                                          160))
+                                                                ])
                                                               ]),
-                                                        )
-                                                      ])),
-                                            ),
-                                          );
-                                        }),
-                                  )
-                                : Center(
-                                    child: Text(
-                                        "An error occured, Try revisiting this page"));
+                                                          SizedBox(height: 8),
+                                                          hasAlreadyBooked == 1
+                                                              ? Text(
+                                                                  " You have already booked this class")
+                                                              : Visibility(
+                                                                  visible:
+                                                                      false,
+                                                                  child:
+                                                                      Text("")),
+                                                          Text("Location",
+                                                              style: TextStyle(
+                                                                  fontSize:
+                                                                      12)),
+                                                          Text(
+                                                              "Date and Time Availability: $scheduledDays",
+                                                              style: TextStyle(
+                                                                  fontSize:
+                                                                      12)),
+                                                          SizedBox(height: 8),
+                                                          Row(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceBetween,
+                                                              children: [
+                                                                Text(
+                                                                    "PHP $pricePerDay / Day",
+                                                                    style: TextStyle(
+                                                                        fontSize:
+                                                                            12,
+                                                                        fontWeight:
+                                                                            FontWeight.bold)),
+                                                                Text(
+                                                                    "Discounted if booked early",
+                                                                    style: TextStyle(
+                                                                        fontSize:
+                                                                            10,
+                                                                        fontWeight:
+                                                                            FontWeight.w300)),
+                                                              ]),
+                                                        ]),
+                                                  )
+                                                ])),
+                                      ),
+                                    );
+                                  }),
+                            );
                           }))),
             ],
           )),

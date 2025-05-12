@@ -7,13 +7,19 @@ import 'package:fitup/classes/Users.dart';
 import 'package:fitup/classes/GymTrainerProfileClass.dart';
 
 import 'package:fitup/components/textField.dart';
+import 'package:fitup/components/textFieldMultiarea.dart';
 import 'package:fitup/components/textFieldPhone.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:fitup/classes/AppConfig.dart';
 
@@ -111,8 +117,25 @@ Future<String> getUIDByFirebaseUID(String firebaseUID) async {
 } // getUIDByFirebaseUID
 
 class _editTrainerDetailsState extends State<EditTrainerDetails> {
+  TextEditingController textProfileDescController = new TextEditingController();
   TextEditingController textLongBioController = new TextEditingController();
   TextEditingController textShortBioController = new TextEditingController();
+
+  TextEditingController textFacebookSocialController =
+      new TextEditingController();
+  TextEditingController textTiktokSocialController =
+      new TextEditingController();
+
+  TextEditingController textRednoteSocialController =
+      new TextEditingController();
+  TextEditingController textWhatsappSocialController =
+      new TextEditingController();
+  TextEditingController textLinkedinSocialController =
+      new TextEditingController();
+  TextEditingController textInstagramSocialController =
+      new TextEditingController();
+  TextEditingController textXSocialController = new TextEditingController();
+  TextEditingController textViberSocialController = new TextEditingController();
 
   String? firebaseUID;
   String? roleId;
@@ -130,6 +153,18 @@ class _editTrainerDetailsState extends State<EditTrainerDetails> {
   String? socialsLinkedinValue;
   String? socialsViberValue;
 
+  XFile? _image;
+  String? _downloadURL;
+  double _progress = 0.0; //
+
+  String? exerciseId,
+      trainingCategoryId,
+      sessionSetup,
+      exerciseLevel,
+      trainerCoverPhoto,
+      trainerCoverPhotoNew,
+      classLimit;
+
   void initState() {
     super.initState();
     firebaseUID = FirebaseAuth.instance.currentUser!.uid.toString();
@@ -142,6 +177,61 @@ class _editTrainerDetailsState extends State<EditTrainerDetails> {
       roleId = roleIDValue;
     });
   } // getSharedPreferencesValues
+
+  Future<XFile?> _pickImage() async {
+    final ImagePicker _picker = ImagePicker();
+    XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    return image;
+  }
+
+  Future<String?> _uploadImage(XFile image) async {
+    String firebaseUID = FirebaseAuth.instance.currentUser!.uid.toString();
+    try {
+      FirebaseStorage storage = FirebaseStorage.instance;
+
+      final uniqueId = new Uuid();
+      String uniqueIdValue = uniqueId.v4();
+      String profileImageFileName = firebaseUID + "_" + uniqueIdValue + "";
+
+      Reference ref = storage
+          .ref()
+          .child("trainer_cover_photos/" + profileImageFileName + ".jpg");
+      TaskSnapshot uploadTask = await ref.putFile(File(image.path));
+
+      UploadTask uploadTasking = ref.putFile(File(image.path));
+
+      // Listen to upload progress
+      uploadTasking.snapshotEvents.listen((TaskSnapshot snapshot) {
+        double progress = snapshot.bytesTransferred / snapshot.totalBytes;
+        setState(() {
+          _progress = progress; // Update the progress value
+        });
+      });
+
+      String downloadURL = await uploadTask.ref.getDownloadURL();
+
+      return downloadURL;
+    } catch (e) {
+      print('Error uploading image: $e');
+      return null;
+    }
+  } // _uploadImage
+
+  Future<void> _pickAndUploadImage() async {
+    // Pick an image
+    XFile? image = await _pickImage();
+    if (image != null) {
+      // Upload the image and get the download URL
+      String? downloadURL = await _uploadImage(image);
+      if (downloadURL != null) {
+        setState(() {
+          _image = image;
+          trainerCoverPhotoNew = downloadURL;
+          _progress = 0.0;
+        });
+      }
+    }
+  } // _pickAndUploadImage
 
   Stream<List<Users>> getUsers(String firebaseUID) {
     final dbref = FirebaseDatabase.instance.ref("users");
@@ -261,80 +351,264 @@ class _editTrainerDetailsState extends State<EditTrainerDetails> {
                   }
 
                   if (snapshot.data!.length > 0) {
+                    textProfileDescController.text =
+                        snapshot.data![0].profile_description;
                     textLongBioController.text = snapshot.data![0].bio_one;
                     textShortBioController.text = snapshot.data![0].bio_two;
+                    textFacebookSocialController.text =
+                        snapshot.data![0].socials_facebook;
+                    textTiktokSocialController.text =
+                        snapshot.data![0].socials_tiktok;
+                    trainerCoverPhoto = snapshot.data![0].cover_photos;
                   }
 
                   return ListView(children: [
                     SizedBox(height: 25),
                     Container(
-                        child: Column(children: [
-                      TextFieldCustom(
-                          textController: textLongBioController,
-                          obscure_text: false,
-                          hint_text_value: "Bio (Tell about yourself)",
-                          iconPrefix: const Icon(Icons.person_rounded,
-                              color: Colors.black12),
-                          iconSuffix: const Icon(Icons.remove_red_eye_rounded,
-                              color: Colors.transparent)),
-                      TextFieldCustom(
-                          textController: textShortBioController,
-                          obscure_text: false,
-                          hint_text_value:
-                              "Short Bio (e.g Years of experience, Title or Personality etc.)",
-                          iconPrefix: const Icon(Icons.person_rounded,
-                              color: Colors.black12),
-                          iconSuffix: const Icon(Icons.remove_red_eye_rounded,
-                              color: Colors.transparent)),
-                      SizedBox(height: 15),
-                      GestureDetector(
-                        onTap: () {
-                          updateUserDetails(
-                              textLongBioController.text,
-                              textShortBioController.text,
-                              specialtyValues ?? "",
-                              coverPhotosValues ?? "",
-                              gymId ?? "",
-                              profileDescriptionValue ?? "",
-                              socialsInstagramValue ?? "",
-                              socialsFacebookValue ?? "",
-                              socialsXValue ?? "",
-                              socialsWhatsappValue ?? "",
-                              socialsTiktokValue ?? "",
-                              socialsRednoteValue ?? "",
-                              socialsLinkedinValue ?? "",
-                              socialsViberValue ?? "");
+                      margin: const EdgeInsets.only(left: 25, bottom: 10),
+                      child: Text("Cover Photo",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        _pickAndUploadImage();
+                      },
+                      child: Container(
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: Colors.grey.withOpacity(0.05)),
+                          height: 225,
+                          margin: const EdgeInsets.only(left: 20, right: 20),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Image.network(
+                                trainerCoverPhotoNew == null
+                                    ? trainerCoverPhoto ?? ""
+                                    : trainerCoverPhotoNew ?? "",
+                                errorBuilder:
+                                    (context, error, StackTraceError) {
+                              return Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.upload, size: 42),
+                                    Text("Upload Your Trainer Cover Photo"),
+                                    Text(
+                                        "This will be seen by potential clients on your profile, give your best shot!",
+                                        style: TextStyle(fontSize: 8))
+                                  ]);
+                            }, loadingBuilder: (context, Widget child,
+                                    ImageChunkEvent? loadingProgress) {
+                              if (loadingProgress == null) {
+                                return child;
+                              } else {
+                                return Center(
+                                    child: CircularProgressIndicator(
+                                        value: loadingProgress != null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                (loadingProgress
+                                                        .expectedTotalBytes ??
+                                                    1)
+                                            : null));
+                              }
+                            }, fit: BoxFit.cover),
+                          )),
+                    ),
+                    Container(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          Container(
+                            margin: const EdgeInsets.only(
+                                left: 25, top: 20, bottom: 10),
+                            child: Text("Profile Description",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                          TextFieldMultiarea(
+                              textController: textProfileDescController,
+                              obscure_text: false,
+                              hint_text_value:
+                                  "Tell something briefly about yourself, This will include on your cover photo that will be seen by potential clients. Give your best pitch!",
+                              maxLineLength: 5),
+                          Container(
+                            margin: const EdgeInsets.only(
+                                left: 25, top: 20, bottom: 10),
+                            child: Text("General Bio",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                          TextFieldMultiarea(
+                              textController: textLongBioController,
+                              obscure_text: false,
+                              hint_text_value: "Bio (Tell about yourself)",
+                              maxLineLength: 5),
+                          Container(
+                            margin: const EdgeInsets.only(
+                                left: 25, top: 20, bottom: 10),
+                            child: Text("Short Bio",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                          TextFieldMultiarea(
+                              textController: textShortBioController,
+                              obscure_text: false,
+                              hint_text_value:
+                                  "Short Bio (e.g Years of experience, Title or Personality etc.)",
+                              maxLineLength: 2),
+                          SizedBox(height: 15),
+                          Container(
+                            margin: const EdgeInsets.only(
+                                left: 25, top: 20, bottom: 10),
+                            child: Text("Facebook",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                          TextFieldCustom(
+                              textController: textFacebookSocialController,
+                              obscure_text: false,
+                              hint_text_value: "Your Facebook ID",
+                              iconPrefix: Icon(Icons.facebook),
+                              iconSuffix: Icon(Icons.facebook,
+                                  color: Colors.transparent)),
+                          Container(
+                            margin: const EdgeInsets.only(
+                                left: 25, top: 20, bottom: 10),
+                            child: Text("Tiktok ID",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                          TextFieldCustom(
+                              textController: textTiktokSocialController,
+                              obscure_text: false,
+                              hint_text_value: "Your Tiktok ID",
+                              iconPrefix: Icon(Icons.tiktok),
+                              iconSuffix: Icon(Icons.tiktok,
+                                  color: Colors.transparent)),
+                          Container(
+                            margin: const EdgeInsets.only(
+                                left: 25, top: 20, bottom: 10),
+                            child: Text("LinkedIn",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                          TextFieldCustom(
+                              textController: textLinkedinSocialController,
+                              obscure_text: false,
+                              hint_text_value: "Your LinkedIn ID",
+                              iconPrefix: Icon(Icons.link),
+                              iconSuffix:
+                                  Icon(Icons.link, color: Colors.transparent)),
+                          Container(
+                            margin: const EdgeInsets.only(
+                                left: 25, top: 20, bottom: 10),
+                            child: Text("Viber",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                          TextFieldCustom(
+                              textController: textViberSocialController,
+                              obscure_text: false,
+                              hint_text_value: "Your Viber Number",
+                              iconPrefix: Icon(Icons.phone_android_outlined),
+                              iconSuffix: Icon(Icons.phone_android_outlined,
+                                  color: Colors.transparent)),
+                          Container(
+                            margin: const EdgeInsets.only(
+                                left: 25, top: 20, bottom: 10),
+                            child: Text("Instagram",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                          TextFieldCustom(
+                              textController: textInstagramSocialController,
+                              obscure_text: false,
+                              hint_text_value: "Your Instagram ID",
+                              iconPrefix: Icon(Icons.camera_alt_outlined),
+                              iconSuffix: Icon(Icons.camera_alt_outlined,
+                                  color: Colors.transparent)),
+                          Container(
+                            margin: const EdgeInsets.only(
+                                left: 25, top: 20, bottom: 10),
+                            child: Text("X (formerly Twitter)",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                          TextFieldCustom(
+                              textController: textXSocialController,
+                              obscure_text: false,
+                              hint_text_value: "Your X/Twitter ID",
+                              iconPrefix: Icon(Icons.numbers_sharp),
+                              iconSuffix: Icon(Icons.one_x_mobiledata_outlined,
+                                  color: Colors.transparent)),
+                          Container(
+                            margin: const EdgeInsets.only(
+                                left: 25, top: 20, bottom: 10),
+                            child: Text("Reddit",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                          TextFieldCustom(
+                              textController: textRednoteSocialController,
+                              obscure_text: false,
+                              hint_text_value: "Your Reddit Username",
+                              iconPrefix: Icon(Icons.reddit),
+                              iconSuffix: Icon(Icons.reddit,
+                                  color: Colors.transparent)),
+                          SizedBox(height: 15),
+                          GestureDetector(
+                            onTap: () {
+                              updateUserDetails(
+                                  textLongBioController.text,
+                                  textShortBioController.text,
+                                  specialtyValues ?? "",
+                                  trainerCoverPhotoNew == null
+                                      ? trainerCoverPhoto ?? ""
+                                      : trainerCoverPhotoNew ?? "",
+                                  gymId ?? "",
+                                  textProfileDescController.text,
+                                  socialsInstagramValue ?? "",
+                                  textFacebookSocialController.text,
+                                  socialsXValue ?? "",
+                                  socialsWhatsappValue ?? "",
+                                  textTiktokSocialController.text,
+                                  textRednoteSocialController.text,
+                                  textLinkedinSocialController.text,
+                                  textViberSocialController.text);
 
-                          textLongBioController.text = "";
-                          textShortBioController.text = "";
+                              textLongBioController.text = "";
+                              textShortBioController.text = "";
 
-                          Navigator.push(context,
-                              MaterialPageRoute(builder: (context) {
-                            return InstructorMainMenu(
-                                selectedInitIndex: 4, subSelectedInitIndex: 0);
-                          }));
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (context) {
+                                return InstructorMainMenu(
+                                    selectedInitIndex: 4,
+                                    subSelectedInitIndex: 0);
+                              }));
 
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(
-                                  "Trainer Details Successfully Updated!")));
-                        },
-                        child: Container(
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.all(15),
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 5),
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: const Color.fromARGB(199, 118, 10, 160)),
-                            child: GestureDetector(
-                                onTap: () {},
-                                child: const Text("Update",
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16)))),
-                      ),
-                    ])),
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  content: Text(
+                                      "Trainer Details Successfully Updated!")));
+                            },
+                            child: Container(
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.all(15),
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 5),
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color: const Color.fromARGB(
+                                        199, 118, 10, 160)),
+                                child: GestureDetector(
+                                    onTap: () {},
+                                    child: const Text("Update",
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16)))),
+                          ),
+                        ])),
                   ]);
                 })));
   }

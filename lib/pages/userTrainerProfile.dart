@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fitup/classes/GymTrainerClasses.dart';
 import 'package:fitup/classes/UserImagesClass.dart';
+import 'package:fitup/classes/GymTrainerProfileClass.dart';
 
 import 'package:fitup/classes/AppConfig.dart';
 
@@ -89,13 +90,19 @@ class _userTrainerProfileState extends State<UserTrainerProfile> {
   String? trainerId;
   List<Users> userList = [];
   List<UserImagesClass> userImagesList = [];
+  List<GymTrainerProfileClass> gymTrainerProfileList = [];
   String? clientUsername;
   String? clientFullname;
   String? trainerUsername;
   String? trainerFullname;
+  String? trainerCoverPhoto;
   String? firebaseUIDValue;
   String? profileImageUrl;
   String? sessionSetup;
+  String? profileDescription;
+  String? facebookProfileID;
+  String? tiktokProfileID;
+  String? specialtySkills;
 
   void initState() {
     super.initState();
@@ -114,6 +121,72 @@ class _userTrainerProfileState extends State<UserTrainerProfile> {
     });
   } // getSessionSetup
 
+  void getTrainerProfileData(String trainerIdValue) async {
+    List<GymTrainerProfileClass> listTrainerClass =
+        await getTrainerProfile(trainerIdValue);
+    setState(() {
+      gymTrainerProfileList = listTrainerClass;
+      trainerCoverPhoto = gymTrainerProfileList.length > 0
+          ? gymTrainerProfileList[0].cover_photos
+          : "";
+      facebookProfileID = gymTrainerProfileList.length > 0
+          ? gymTrainerProfileList[0].socials_facebook
+          : "";
+      tiktokProfileID = gymTrainerProfileList.length > 0
+          ? gymTrainerProfileList[0].socials_tiktok
+          : "";
+      specialtySkills = gymTrainerProfileList.length > 0
+          ? gymTrainerProfileList[0].specialty
+          : "";
+      profileDescription = gymTrainerProfileList.length > 0
+          ? gymTrainerProfileList[0].profile_description
+          : "";
+    });
+  } // getTrainerProfileData
+
+  Future<List<GymTrainerProfileClass>> getTrainerProfile(
+      String trainerIDValue) async {
+    List<GymTrainerProfileClass> listTrainerProfile = [];
+    String url = dbUrl + "gym_trainer_profile.json";
+    try {
+      final response = await http.get(Uri.parse(url));
+      final extractedData = json.decode(response.body) as Map<String, dynamic>;
+
+      if (extractedData == null ||
+          extractedData == Null ||
+          response.body.isEmpty) {
+        return [];
+      }
+      extractedData.forEach((key, json) {
+        String trainerID = key;
+        if (trainerIDValue == trainerID) {
+          listTrainerProfile.add(GymTrainerProfileClass(
+              gym_trainer_profile_id: json['gym_trainer_profile_id'] ?? "",
+              gym_id: json['gym_id'] ?? "",
+              specialty: json['specialty'] ?? "",
+              bio_one: json['bio_one'] ?? "",
+              bio_two: json['bio_two'] ?? "",
+              socials_facebook: json['socials_facebook'] ?? "",
+              socials_linkedin: json['socials_linkedin'] ?? "",
+              socials_instagram: json['socials_instagram'] ?? "",
+              socials_rednote: json['socials_rednote'] ?? "",
+              socials_tiktok: json['socials_tiktok'] ?? "",
+              socials_whatsapp: json['socials_whatsapp'] ?? "",
+              socials_viber: json['socials_viber'] ?? "",
+              socials_x: json['socials_x'] ?? "",
+              firebase_uid: json['firebase_uid'] ?? "",
+              date_time_added: json['date_time_added'] ?? "",
+              date_time_last_updated: json['date_time_last_updated'] ?? "",
+              cover_photos: json['cover_photos'] ?? "",
+              profile_description: json['profile_description'] ?? ""));
+        }
+      });
+    } catch (error) {
+      throw error;
+    }
+    return listTrainerProfile;
+  } // getTrainerProfile
+
   Future<void> getTrainerLatestProfileImage(String trainerIDValue) async {
     String? latestProfileURL = await getUserImageData(trainerIDValue);
     setState(() {
@@ -128,17 +201,22 @@ class _userTrainerProfileState extends State<UserTrainerProfile> {
       final response = await http.get(Uri.parse(url));
       final extractedData = json.decode(response.body) as Map<String, dynamic>;
 
-      if (extractedData == null || response.body.isEmpty) {
+      if (extractedData == null ||
+          extractedData == Null ||
+          response.body.isEmpty) {
         return "";
       }
 
       extractedData.forEach((id, data) {
-        if (data['user_id'] == firebaseUID && data['status'] == "1") {
-          imageUrl = data['image_url'] ?? "";
+        String status = data['status'] ?? "";
+        String userId = data['user_id'] ?? "";
+        String dataImage = data['image_url'] ?? "";
+        if (userId == firebaseUID && status == "1") {
+          imageUrl = dataImage;
         }
       });
     } catch (error) {
-      throw error;
+      return "";
     } // getUserImageData
 
     return imageUrl;
@@ -154,6 +232,7 @@ class _userTrainerProfileState extends State<UserTrainerProfile> {
     });
 
     getTrainerLatestProfileImage(trainerId ?? "");
+    getTrainerProfileData(trainerId ?? "");
   } // getTrainerDetailsFromSession
 
   void getAllUsers() async {
@@ -648,49 +727,73 @@ class _userTrainerProfileState extends State<UserTrainerProfile> {
               Container(
                   width: MediaQuery.of(context).size.width,
                   height: 350,
+                  decoration: BoxDecoration(
+                      color: trainerCoverPhoto == ""
+                          ? Colors.grey.withOpacity(0.05)
+                          : Colors.transparent),
                   child: Stack(children: [
                     Positioned.fill(
-                      child: Image.network(
-                          "https://firebasestorage.googleapis.com/v0/b/fitup-43ee3.firebasestorage.app/o/ads_images%2Fads3boxfit.png?alt=media&token=3ee56184-96ae-488d-b83c-b6781e40efe5",
-                          fit: BoxFit.cover),
+                      child: Image.network(trainerCoverPhoto ?? "",
+                          errorBuilder: (context, error, StackTraceError) {
+                        return Center(child: Icon(Icons.image, size: 55));
+                      }, loadingBuilder: (context, Widget child,
+                              ImageChunkEvent? loadingProgress) {
+                        if (loadingProgress == null) {
+                          return child;
+                        } else {
+                          return Center(
+                              child: CircularProgressIndicator(
+                                  value: loadingProgress != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          (loadingProgress.expectedTotalBytes ??
+                                              1)
+                                      : null));
+                        }
+                      }, fit: BoxFit.cover),
                     ),
-                    Positioned.fill(
-                        top: 160,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text("${trainerFullname}",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 24)),
-                            Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text("FIT UP Username:",
-                                      style: TextStyle(color: Colors.white)),
-                                  Text(trainerName ?? "",
-                                      style: TextStyle(color: Colors.white))
-                                ]),
-                            SizedBox(height: 10),
-                            Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.facebook_outlined,
-                                      color: Colors.white),
-                                  Text(" arvigonzaga",
-                                      style: TextStyle(color: Colors.white))
-                                ]),
-                            Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.tiktok, color: Colors.white),
-                                  Text(" arvi.gonzaga",
-                                      style: TextStyle(color: Colors.white))
-                                ])
-                          ],
-                        ))
+                    Visibility(
+                      visible: trainerCoverPhoto == "" ? false : true,
+                      child: Positioned.fill(
+                          top: 160,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                  trainerFullname == null
+                                      ? ""
+                                      : trainerFullname!.toUpperCase(),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 24)),
+                              Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text("FIT UP Username:",
+                                        style: TextStyle(color: Colors.white)),
+                                    Text(trainerName ?? "",
+                                        style: TextStyle(color: Colors.white))
+                                  ]),
+                              SizedBox(height: 10),
+                              Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.facebook_outlined,
+                                        color: Colors.white),
+                                    Text(facebookProfileID ?? "",
+                                        style: TextStyle(color: Colors.white))
+                                  ]),
+                              Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.tiktok, color: Colors.white),
+                                    Text(tiktokProfileID ?? "",
+                                        style: TextStyle(color: Colors.white))
+                                  ])
+                            ],
+                          )),
+                    )
                   ])),
               Container(
                 margin: const EdgeInsets.all(35),
@@ -703,30 +806,41 @@ class _userTrainerProfileState extends State<UserTrainerProfile> {
                             fontWeight: FontWeight.bold,
                             color: Color.fromARGB(199, 116, 10, 180))),
                     Container(
-                        height: 45,
-                        margin: const EdgeInsets.only(top: 7),
-                        child: ListView.builder(
-                            itemCount: 3,
-                            scrollDirection: Axis.horizontal,
-                            itemBuilder: (context, index) {
-                              return Container(
-                                  width: 100,
-                                  alignment: Alignment.center,
-                                  margin: const EdgeInsets.only(
-                                      right: 10, top: 5, bottom: 5),
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(45),
-                                      border: Border.all(
-                                          width: 2.0,
-                                          color: Color.fromARGB(
-                                              199, 116, 10, 180))),
-                                  child: Text("Runner",
-                                      style: TextStyle(fontSize: 12.5)));
-                            })),
+                      height: 55,
+                      width: MediaQuery.of(context).size.width,
+                      child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: specialtySkills!.split(",").length > 0
+                              ? specialtySkills!.split(",").length
+                              : 0,
+                          itemBuilder: (context, index) {
+                            return Container(
+                                height: 45,
+                                width:
+                                    specialtySkills!.split(",")[index].length *
+                                        12,
+                                margin: const EdgeInsets.only(top: 7),
+                                child: Container(
+                                    width: 100,
+                                    alignment: Alignment.center,
+                                    margin: const EdgeInsets.only(
+                                        right: 10, top: 5, bottom: 5),
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(45),
+                                        border: Border.all(
+                                            width: 2.0,
+                                            color: Color.fromARGB(
+                                                199, 116, 10, 180))),
+                                    child: Text(
+                                        specialtySkills!
+                                            .split(",")[index]
+                                            .toString(),
+                                        style: TextStyle(fontSize: 12.5))));
+                          }),
+                    ),
                     SizedBox(height: 10),
-                    Text(
-                        "Hi there, my name is Arvi. I am a former Gymnastics olympics medalist. I want to be there for you and help you discover the benefits and joys of training that helped me become the person I am today..."),
+                    Text(profileDescription ?? ""),
                     Text("See all",
                         style: TextStyle(
                             color: Color.fromARGB(199, 116, 10, 180))),
