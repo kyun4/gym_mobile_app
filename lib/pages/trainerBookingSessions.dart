@@ -85,6 +85,13 @@ void addPaymentMethodCreditCard(
   }
 } // addPaymentMethodCreditCard
 
+bool isNumeric(String? s) {
+  if (s == null) {
+    return false;
+  }
+  return num.tryParse(s) != null;
+} // isNumeric
+
 Future<void> setSession(String key, String value) async {
   SharedPreferences ref = await SharedPreferences.getInstance();
   ref.setString(key, value);
@@ -329,7 +336,9 @@ class _trainerBookingSessionsState extends State<TrainerBookingSessions> {
                                     0
                                 ? listGymUserSessionData
                                     .where((userSession) =>
-                                        userSession.gym_session_id == sessionId)
+                                        userSession.gym_session_id ==
+                                            sessionId &&
+                                        userSession.user_id == gymSessionUserId)
                                     .toList()[0]
                                     .status
                                 : "";
@@ -440,8 +449,16 @@ class _trainerBookingSessionsState extends State<TrainerBookingSessions> {
                                                             .only(top: 5),
                                                         child: Row(children: [
                                                           Text(
-                                                              "Fit Up Service Fee: PHP " +
-                                                                  fitupFee,
+                                                              fitupFee != "" &&
+                                                                      isNumeric(
+                                                                              fitupFee) ==
+                                                                          true
+                                                                  ? "Fit Up Service Fee: PHP " +
+                                                                      double.parse(
+                                                                              fitupFee)
+                                                                          .toStringAsFixed(
+                                                                              2)
+                                                                  : "Fit Up Service Fee: PHP 0.00",
                                                               style: TextStyle(
                                                                   fontStyle:
                                                                       FontStyle

@@ -92,7 +92,7 @@ bool isNumeric(String? s) {
     return false;
   }
   return num.tryParse(s) != null;
-}
+} // isNumeric
 
 class _instructorProfileMenuState extends State<InstructorProfileMenu> {
   String? firebaseUID;
