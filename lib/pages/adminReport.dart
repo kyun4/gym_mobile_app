@@ -14,6 +14,46 @@ class AdminReport extends StatefulWidget {
   State<AdminReport> createState() => _adminReportState();
 }
 
+String getReportStatus(String IdValue) {
+  String valueLabel = "";
+  switch (IdValue) {
+    case "0":
+      valueLabel = "New";
+    case "1":
+      valueLabel = "Resolved";
+    case "2":
+      valueLabel = "On-process";
+    case "3":
+      valueLabel = "Unresolved but Done";
+  }
+  return valueLabel;
+} // getReportStatus
+
+String getReportType(String IdValue) {
+  String valueLabel = "";
+  switch (IdValue) {
+    case "0":
+      valueLabel = "Others";
+    case "1":
+      valueLabel = "Client Payment for Gym Session";
+    case "2":
+      valueLabel = "Client dispute with Trainer";
+    case "3":
+      valueLabel = "Client report on Gym Class";
+    case "4":
+      valueLabel = "Report on Misleading Ads";
+    case "5":
+      valueLabel = "Trainer dispute on Payment Remittance";
+    case "6":
+      valueLabel = "Trainer dispute with Client Payment";
+    case "7":
+      valueLabel = "Trainer dispute with Client";
+    case "8":
+      valueLabel = "Client Payment for Gym Membership";
+  }
+  return valueLabel;
+} // getReportType
+
 Future<List<IncidentReportClass>> getIncidentReports() async {
   List<IncidentReportClass> listIncidentReportData = [];
   String url = dbUrl + "incident_reports.json";
@@ -56,7 +96,7 @@ class _adminReportState extends State<AdminReport> {
             child: Container(
                 child: Column(children: [
           Container(
-              height: MediaQuery.of(context).size.width - 150,
+              height: MediaQuery.of(context).size.width,
               child: StreamBuilder(
                   stream: getIncidentReports().asStream(),
                   builder: (context, snapshot) {
@@ -82,18 +122,56 @@ class _adminReportState extends State<AdminReport> {
                         itemBuilder: (context, index) {
                           final dataContent = uniqueList[index];
                           String reportContent = dataContent.report_content;
+
+                          String reportTypeId = dataContent.report_type;
+                          String reportType = getReportType(reportTypeId);
+
+                          String reportStatusId = dataContent.status;
+                          String reportStatus = getReportStatus(reportStatusId);
+
+                          String reportDateTime = dataContent.report_date_time;
+
+                          String reportSubmittedBy = "";
+
                           return Container(
+                              width: MediaQuery.of(context).size.width,
                               child: Row(children: [
-                            Container(
-                                margin: const EdgeInsets.all(10),
-                                height: 50,
-                                width: 50,
-                                decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(50),
-                                    color: Colors.grey.withOpacity(0.3)),
-                                child: Icon(Icons.report)),
-                            Column(children: [Text(reportContent)])
-                          ]));
+                                Container(
+                                    margin: const EdgeInsets.all(10),
+                                    height: 50,
+                                    width: 50,
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(50),
+                                        color: Colors.grey.withOpacity(0.3)),
+                                    child: Icon(Icons.report)),
+                                Container(
+                                  width:
+                                      MediaQuery.of(context).size.width - 220,
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(reportType,
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold)),
+                                        Text(reportStatus)
+                                      ]),
+                                ),
+                                Container(
+                                    width: 150,
+                                    height: 50,
+                                    child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text("by $reportSubmittedBy",
+                                              style: TextStyle(fontSize: 12)),
+                                          Text(reportDateTime,
+                                              style: TextStyle(fontSize: 12))
+                                        ]))
+                              ]));
                         });
                   }))
         ]))));

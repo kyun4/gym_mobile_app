@@ -61,7 +61,7 @@ String getTransactionType(String transactionTypeId) {
       transactionTypeLabel = "Gym Program Cancelled by Client";
   }
   return transactionTypeLabel;
-}
+} // getTransactionType
 
 Future<List<GymUserSessionClass>> getUserSessions() async {
   List<GymUserSessionClass> listData = [];
@@ -209,7 +209,8 @@ Future<List<UserDetails>> getAllUsers() async {
   return listUsersData;
 } // getAllUsers
 
-Future<List<TransactionClass>> getTransactions() async {
+Future<List<TransactionClass>> getTransactions(String transactionTypeFilter,
+    DateTime? dateStart, DateTime? dateEnd) async {
   List<TransactionClass> listTransaction = [];
 
   String url = dbUrl + "transaction.json";
@@ -246,6 +247,39 @@ Future<List<TransactionClass>> getTransactions() async {
 
     listTransaction.sort((a, b) => DateTime.parse(b.date_time_transaction)
         .compareTo(DateTime.parse(a.date_time_transaction)));
+
+    if (dateStart != null && dateEnd == null) {
+      listTransaction = listTransaction
+          .where((transactionData) =>
+              DateTime.parse(DateFormat("yyyy-MM-dd").format(
+                  DateTime.parse(transactionData.date_time_transaction))) ==
+              DateTime.parse(DateFormat("yyyy-MM-dd").format(dateStart)))
+          .toList();
+    }
+
+    if (dateStart != null && dateEnd != null) {
+      listTransaction = listTransaction
+          .where((transactionData) =>
+              (DateTime.parse(DateFormat("yyyy-MM-dd").format(
+                      DateTime.parse(transactionData.date_time_transaction)))
+                  .isAfter(
+                      DateTime.parse(DateFormat("yyyy-MM-dd").format(dateStart))
+                          .subtract(Duration(days: 1)))) &&
+              DateTime.parse(DateFormat("yyyy-MM-dd").format(
+                      DateTime.parse(transactionData.date_time_transaction)))
+                  .isBefore(
+                      DateTime.parse(DateFormat("yyyy-MM-dd").format(dateEnd)).add(Duration(days: 1))))
+          .toList();
+    }
+
+    if (transactionTypeFilter != "0" &&
+        transactionTypeFilter != "" &&
+        transactionTypeFilter != null) {
+      listTransaction = listTransaction
+          .where((transactionData) =>
+              transactionData.transaction_type == transactionTypeFilter)
+          .toList();
+    }
   } catch (error) {
     throw error;
   }
@@ -539,6 +573,10 @@ class _adminTransactionState extends State<AdminTransaction> {
   List<GymTrainerClasses> listGymTrainerClassesData = [];
   List<GymSessionClass> listGymSessionClassesData = [];
 
+  String selectedTransactionType = "0";
+  DateTime? _selectedDateStart;
+  DateTime? _selectedDateEnd;
+
   void initState() {
     super.initState();
     getUserSessionClass();
@@ -547,6 +585,38 @@ class _adminTransactionState extends State<AdminTransaction> {
     getGymTrainerClassesData();
     getGymSessionClasses();
   }
+
+  Future<DateTime?> selectDateStart(context) async {
+    DateTime? dateFinal;
+    DateTime? _date = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(0),
+        lastDate: DateTime(2101));
+
+    if (_date != null && _date != _selectedDateStart) {
+      // _selectedDateStart = _dateStart;
+      dateFinal = _date;
+    }
+
+    return dateFinal;
+  } // selectDateStart
+
+  Future<DateTime?> selectDateEnd(context) async {
+    DateTime? dateFinal;
+    DateTime? _date = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(0),
+        lastDate: DateTime(2101));
+
+    if (_date != null && _date != _selectedDateEnd) {
+      // _selectedDateStart = _dateStart;
+      dateFinal = _date;
+    }
+
+    return dateFinal;
+  } // selectDateEnd
 
   void getUserSessionClass() async {
     List<GymUserSessionClass> listUserSessionData = await getUserSessions();
@@ -764,11 +834,393 @@ class _adminTransactionState extends State<AdminTransaction> {
             title: Text("All Fit Up Transactions",
                 style: TextStyle(fontSize: 14))),
         body: SafeArea(
-            child: Container(
-                height: MediaQuery.of(context).size.height,
+            child: Column(
+          children: [
+            Container(
+              height: 60,
+              margin: const EdgeInsets.only(bottom: 10),
+              child: ListView(scrollDirection: Axis.horizontal, children: [
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTransactionType = "0";
+                    });
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(1),
+                      width: MediaQuery.of(context).size.width * 0.30,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: selectedTransactionType == "0"
+                                      ? Color.fromARGB(199, 167, 10, 185)
+                                      : Colors.transparent,
+                                  width: 2))),
+                      child: Text("All",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: selectedTransactionType == "0"
+                                  ? Color.fromARGB(199, 167, 10, 185)
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selectedTransactionType == "0"
+                                  ? FontWeight.bold
+                                  : FontWeight.w300))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTransactionType = "1";
+                    });
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(1),
+                      width: MediaQuery.of(context).size.width * 0.30,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: selectedTransactionType == "1"
+                                      ? Color.fromARGB(199, 167, 10, 185)
+                                      : Colors.transparent,
+                                  width: 2))),
+                      child: Text(getTransactionType("1"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: selectedTransactionType == "1"
+                                  ? Color.fromARGB(199, 167, 10, 185)
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selectedTransactionType == "1"
+                                  ? FontWeight.bold
+                                  : FontWeight.w300))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTransactionType = "2";
+                    });
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(1),
+                      width: MediaQuery.of(context).size.width * 0.30,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: selectedTransactionType == "2"
+                                      ? Color.fromARGB(199, 167, 10, 185)
+                                      : Colors.transparent,
+                                  width: 2))),
+                      child: Text(getTransactionType("2"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: selectedTransactionType == "2"
+                                  ? Color.fromARGB(199, 167, 10, 185)
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selectedTransactionType == "2"
+                                  ? FontWeight.bold
+                                  : FontWeight.w300))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTransactionType = "3";
+                    });
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(1),
+                      width: MediaQuery.of(context).size.width * 0.30,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: selectedTransactionType == "3"
+                                      ? Color.fromARGB(199, 167, 10, 185)
+                                      : Colors.transparent,
+                                  width: 2))),
+                      child: Text(getTransactionType("3"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: selectedTransactionType == "3"
+                                  ? Color.fromARGB(199, 167, 10, 185)
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selectedTransactionType == "3"
+                                  ? FontWeight.bold
+                                  : FontWeight.w300))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTransactionType = "4";
+                    });
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(1),
+                      width: MediaQuery.of(context).size.width * 0.30,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: selectedTransactionType == "4"
+                                      ? Color.fromARGB(199, 167, 10, 185)
+                                      : Colors.transparent,
+                                  width: 2))),
+                      child: Text(getTransactionType("4"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: selectedTransactionType == "4"
+                                  ? Color.fromARGB(199, 167, 10, 185)
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selectedTransactionType == "4"
+                                  ? FontWeight.bold
+                                  : FontWeight.w300))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTransactionType = "5";
+                    });
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(1),
+                      width: MediaQuery.of(context).size.width * 0.30,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: selectedTransactionType == "5"
+                                      ? Color.fromARGB(199, 167, 10, 185)
+                                      : Colors.transparent,
+                                  width: 2))),
+                      child: Text(getTransactionType("5"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: selectedTransactionType == "5"
+                                  ? Color.fromARGB(199, 167, 10, 185)
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selectedTransactionType == "5"
+                                  ? FontWeight.bold
+                                  : FontWeight.w300))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTransactionType = "6";
+                    });
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(1),
+                      width: MediaQuery.of(context).size.width * 0.30,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: selectedTransactionType == "6"
+                                      ? Color.fromARGB(199, 167, 10, 185)
+                                      : Colors.transparent,
+                                  width: 2))),
+                      child: Text(getTransactionType("6"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: selectedTransactionType == "6"
+                                  ? Color.fromARGB(199, 167, 10, 185)
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selectedTransactionType == "6"
+                                  ? FontWeight.bold
+                                  : FontWeight.w300))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTransactionType = "7";
+                    });
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(1),
+                      width: MediaQuery.of(context).size.width * 0.35,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: selectedTransactionType == "7"
+                                      ? Color.fromARGB(199, 167, 10, 185)
+                                      : Colors.transparent,
+                                  width: 2))),
+                      child: Text(getTransactionType("7"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: selectedTransactionType == "7"
+                                  ? Color.fromARGB(199, 167, 10, 185)
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selectedTransactionType == "7"
+                                  ? FontWeight.bold
+                                  : FontWeight.w300))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTransactionType = "8";
+                    });
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(1),
+                      width: MediaQuery.of(context).size.width * 0.40,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: selectedTransactionType == "8"
+                                      ? Color.fromARGB(199, 167, 10, 185)
+                                      : Colors.transparent,
+                                  width: 2))),
+                      child: Text(getTransactionType("8"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: selectedTransactionType == "8"
+                                  ? Color.fromARGB(199, 167, 10, 185)
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selectedTransactionType == "8"
+                                  ? FontWeight.bold
+                                  : FontWeight.w300))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTransactionType = "9";
+                    });
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(1),
+                      width: MediaQuery.of(context).size.width * 0.35,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: selectedTransactionType == "9"
+                                      ? Color.fromARGB(199, 167, 10, 185)
+                                      : Colors.transparent,
+                                  width: 2))),
+                      child: Text(getTransactionType("9"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: selectedTransactionType == "9"
+                                  ? Color.fromARGB(199, 167, 10, 185)
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selectedTransactionType == "9"
+                                  ? FontWeight.bold
+                                  : FontWeight.w300))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTransactionType = "10";
+                    });
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(1),
+                      width: MediaQuery.of(context).size.width * 0.35,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: selectedTransactionType == "10"
+                                      ? Color.fromARGB(199, 167, 10, 185)
+                                      : Colors.transparent,
+                                  width: 2))),
+                      child: Text(getTransactionType("10"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: selectedTransactionType == "10"
+                                  ? Color.fromARGB(199, 167, 10, 185)
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selectedTransactionType == "10"
+                                  ? FontWeight.bold
+                                  : FontWeight.w300))),
+                )
+              ]),
+            ),
+            Container(
+                margin: const EdgeInsets.only(
+                    left: 12, right: 12, bottom: 10, top: 10),
+                height: 40,
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Filter by Date ",
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w400)),
+                      Row(children: [
+                        GestureDetector(
+                            onTap: () async {
+                              DateTime? dateStart =
+                                  await selectDateStart(context);
+
+                              setState(() {
+                                _selectedDateStart = dateStart;
+                              });
+                            },
+                            child: Container(
+                                padding: const EdgeInsets.only(
+                                    right: 10, left: 10, top: 5, bottom: 5),
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.black12)),
+                                child: Text(
+                                    _selectedDateStart == null
+                                        ? "MMM-dd-YYYY"
+                                        : DateFormat("MMM-dd-yyyy").format(
+                                            _selectedDateStart ??
+                                                DateTime.now()),
+                                    style: TextStyle(
+                                        color: _selectedDateStart == null
+                                            ? Colors.black12
+                                            : Colors.black87)))),
+                        Container(
+                            margin: const EdgeInsets.all(5),
+                            child: Text(" - ")),
+                        GestureDetector(
+                            onTap: () async {
+                              DateTime? dateEnd = await selectDateEnd(context);
+
+                              setState(() {
+                                _selectedDateEnd = dateEnd;
+                              });
+                            },
+                            child: Container(
+                                padding: const EdgeInsets.only(
+                                    right: 10, left: 10, top: 5, bottom: 5),
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.black12)),
+                                child: Text(
+                                    _selectedDateEnd == null
+                                        ? "MMM-dd-YYYY"
+                                        : DateFormat("MMM-dd-yyyy").format(
+                                            _selectedDateEnd ?? DateTime.now()),
+                                    style: TextStyle(
+                                        color: _selectedDateEnd == null
+                                            ? Colors.black12
+                                            : Colors.black87))))
+                      ])
+                    ])),
+            Container(
+                height: MediaQuery.of(context).size.height - 275,
                 width: MediaQuery.of(context).size.width,
                 child: StreamBuilder(
-                    stream: getTransactions().asStream(),
+                    stream: getTransactions(selectedTransactionType,
+                            _selectedDateStart, _selectedDateEnd)
+                        .asStream(),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
                         return Center(child: const Text("No available data"));
@@ -1163,10 +1615,16 @@ class _adminTransactionState extends State<AdminTransaction> {
                                                                     transactionType ==
                                                                         "2")
                                                             ? "Confirmation for\nPHP " +
-                                                                totalPrice
+                                                                double.parse(
+                                                                        totalPrice)
+                                                                    .toStringAsFixed(
+                                                                        2)
                                                             : operationSymbol +
                                                                 "PHP " +
-                                                                totalPaid,
+                                                                double.parse(
+                                                                        totalPaid)
+                                                                    .toStringAsFixed(
+                                                                        2),
                                                         style: TextStyle(
                                                             fontStyle: FontStyle
                                                                 .italic))
@@ -1177,6 +1635,8 @@ class _adminTransactionState extends State<AdminTransaction> {
                                       ])),
                             );
                           });
-                    }))));
+                    })),
+          ],
+        )));
   }
 }

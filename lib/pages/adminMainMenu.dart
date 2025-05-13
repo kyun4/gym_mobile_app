@@ -430,8 +430,10 @@ class _DashboardPage extends State<DashboardPage> {
   String? adminCount;
   String? thisMonthSales;
   String? fitupWalletBalance;
+  String? thisMonthTrainerCollected;
 
   double thisMonthSalesDouble = 0.0;
+  double thisMonthTrainerCollectedDouble = 0.0;
 
   String januarySales = "0";
   String februarySales = "0";
@@ -549,7 +551,7 @@ class _DashboardPage extends State<DashboardPage> {
       int year, int month, List<TransactionClass> listTransactionDatas) {
     List<TransactionClass> listTransactionDataValue = listTransactionDatas
         .where((transactionData) =>
-            transactionData.transaction_type == '4' &&
+            transactionData.transaction_type == '1' &&
             DateTime.parse(transactionData.date_time_transaction).year ==
                 year &&
             DateTime.parse(transactionData.date_time_transaction).month ==
@@ -569,6 +571,8 @@ class _DashboardPage extends State<DashboardPage> {
         await getTransactionsData();
 
     List<TransactionClass> listTransactionDataValueThisMonth = [];
+    List<TransactionClass> listTransactionTrainerCollectedDataValueThisMonth =
+        [];
 
     double januaryMonthSalesDoubleValue = getCurrentYearMonthSales(
         DateTime.now().year, 1, listTransactionDataValue);
@@ -608,7 +612,7 @@ class _DashboardPage extends State<DashboardPage> {
 
     listTransactionDataValueThisMonth = listTransactionDataValue
         .where((transactionData) =>
-            transactionData.transaction_type == '4' &&
+            transactionData.transaction_type == '1' &&
             DateTime.parse(transactionData.date_time_transaction).year ==
                 DateTime.now().year &&
             DateTime.parse(transactionData.date_time_transaction).month ==
@@ -620,9 +624,27 @@ class _DashboardPage extends State<DashboardPage> {
       return sum + double.parse(item.total_paid);
     });
 
+    listTransactionTrainerCollectedDataValueThisMonth = listTransactionDataValue
+        .where((transactionData) =>
+            transactionData.transaction_type == '3' &&
+            DateTime.parse(transactionData.date_time_transaction).year ==
+                DateTime.now().year &&
+            DateTime.parse(transactionData.date_time_transaction).month ==
+                DateTime.now().month)
+        .toList();
+
+    double thisMonthTrainerCollectedDoubleValue =
+        listTransactionTrainerCollectedDataValueThisMonth.fold(0.0,
+            (sum, item) {
+      return sum + double.parse(item.total_paid);
+    });
+
     setState(() {
       thisMonthSalesDouble = thisMonthSalesDoubleValue;
       thisMonthSales = "PHP " + thisMonthSalesDouble.toStringAsFixed(2);
+      thisMonthTrainerCollectedDouble = thisMonthTrainerCollectedDoubleValue;
+      thisMonthTrainerCollected =
+          "PHP " + thisMonthTrainerCollectedDouble.toStringAsFixed(2);
       januarySales = januaryMonthSalesDoubleValue.toStringAsFixed(2);
       februarySales = februaryMonthSalesDoubleValue.toStringAsFixed(2);
       marchSales = marchMonthSalesDoubleValue.toStringAsFixed(2);
@@ -925,11 +947,35 @@ class _DashboardPage extends State<DashboardPage> {
                         child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(fitupWalletBalance ?? "",
+                              Text(fitupWalletBalance ?? "PHP 0.00",
                                   style: TextStyle(
                                       fontSize: 28,
                                       fontWeight: FontWeight.bold)),
                               Text("Fitup Overall Revenue",
+                                  style: TextStyle(fontSize: 18))
+                            ])),
+                    Container(
+                        margin: const EdgeInsets.all(5),
+                        width: MediaQuery.of(context).size.width * 80,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  spreadRadius: 2,
+                                  blurRadius: 15,
+                                  offset: Offset(2, 2))
+                            ]),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(thisMonthTrainerCollected ?? "PHP 0.00",
+                                  style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold)),
+                              Text("Trainer's Overall Collection",
                                   style: TextStyle(fontSize: 18))
                             ])),
                     Row(children: [
