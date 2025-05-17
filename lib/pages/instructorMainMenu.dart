@@ -297,7 +297,7 @@ class _instructorSchedulingPageState extends State<InstructorSchedulingPage> {
         subSelectedIndexLocal <= 70) {
       switch (subSelectedIndexLocal) {
         case 56:
-          pageCurrent = const Center(child: Text("Walappapu"));
+          pageCurrent = const Center(child: Text("Extra Page"));
         default:
           pageCurrent = const Center(child: Text("Page not found"));
       }

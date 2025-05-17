@@ -95,10 +95,13 @@ class _instructorClassesMenuState extends State<InstructorClassesMenu> {
       final response = await http.get(Uri.parse(url));
       final extractedData = json.decode(response.body) as Map<String, dynamic>;
 
-      if (extractedData == null || response.body.isEmpty) {}
+      if (extractedData == null || response.body.isEmpty) {
+        return [];
+      }
 
       extractedData.forEach((key, json) {
-        if (firebaseUID == json['trainer_id']) {
+        String trainerId = json['trainer_id'] ?? "";
+        if (firebaseUID == trainerId) {
           listGymSessions.add(GymSessionClass(
               gym_session_id: json['gym_session_id'],
               gym_class_id: json['gym_class_id'],
@@ -521,22 +524,36 @@ class _instructorClassesMenuState extends State<InstructorClassesMenu> {
                             String timeStartValue = "";
                             String timeEndValue = "";
 
-                            listGymSessionsData.forEach((data) {
-                              String dateSessionSchedule =
-                                  data.for_date_schedule;
+                            List<GymSessionClass> listGymSessionClassFilter =
+                                [];
+                            listGymSessionClassFilter = listGymSessionsData
+                                .where((sessionData) =>
+                                    sessionData.gym_class_id == classId &&
+                                    sessionData.for_date_schedule ==
+                                        dateNowSelected)
+                                .toList();
 
-                              if (dateNowSelected == dateSessionSchedule) {
-                                isDisplay = true;
+                            if (listGymSessionClassFilter.length > 0) {
+                              isDisplay = true;
+                              var data = listGymSessionClassFilter.toList()[0];
+                              String timeStartRaw =
+                                  data.for_time_range_schedule.split("-")[0];
+                              String timeEndRaw =
+                                  data.for_time_range_schedule.split("-")[1];
 
-                                String timeStartRaw =
-                                    data.for_time_range_schedule.split("-")[0];
-                                String timeEndRaw =
-                                    data.for_time_range_schedule.split("-")[1];
+                              timeStartValue = formatTime(timeStartRaw);
+                              timeEndValue = formatTime(timeEndRaw);
+                            }
 
-                                timeStartValue = formatTime(timeStartRaw);
-                                timeEndValue = formatTime(timeEndRaw);
-                              }
-                            });
+                            // listGymSessionsData.forEach((data) {
+                            //   String dateSessionSchedule = "";
+                            //   dateSessionSchedule = data.for_date_schedule;
+
+                            //   if (dateNowSelected != dateSessionSchedule) {
+                            //   } else {
+                            //     isDisplay = true;
+                            //   }
+                            // });
 
                             return Visibility(
                               visible: isDisplay,
@@ -574,7 +591,7 @@ class _instructorClassesMenuState extends State<InstructorClassesMenu> {
                                                       fontWeight:
                                                           FontWeight.bold,
                                                       fontSize: 14)),
-                                              Text("$pricePerDay Php/day",
+                                              Text("PHP $pricePerDay/Day ",
                                                   style: TextStyle(
                                                       color: Colors.grey))
                                             ]),

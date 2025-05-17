@@ -111,7 +111,7 @@ Stream<List<GymTrainerClasses>> getStreamTrainerClasses() {
 Future<List<UserGymClasses>> getGymUserDetails() async {
   final List<UserGymClasses> listData = [];
   String firebaseUserId = FirebaseAuth.instance.currentUser!.uid.toString();
-  String url = dbUrl + "gym_user_classes.json";
+  String url = dbUrl + "user_gym_classes.json";
 
   try {
     final response = await http.get(Uri.parse(url));
@@ -124,7 +124,8 @@ Future<List<UserGymClasses>> getGymUserDetails() async {
     }
 
     extractedData.forEach((data, json) {
-      if (json['firebase_uid'] == firebaseUserId) {
+      String userID = json['user_id'] ?? "";
+      if (userID == firebaseUserId) {
         listData.add(UserGymClasses(
             user_gym_class_id: json['user_gym_class_id'] ?? "",
             gym_class_id: json['gym_class_id'] ?? "",
@@ -239,10 +240,16 @@ class _userTrainerDetailedSearch extends State<UserTrainerDetailedSearch> {
   String? exerciseId;
   List<Users> listTrainerDetails = [];
   List<UserGymClasses> listGymUserClasses = [];
+  String? firebaseUIDValue;
 
   @override
   void initState() {
     super.initState();
+
+    setState(() {
+      firebaseUIDValue = FirebaseAuth.instance.currentUser!.uid.toString();
+    });
+
     getSharedSessionValues();
     getUserTrainerDetails();
     getUserGymClasses();
@@ -330,7 +337,16 @@ class _userTrainerDetailedSearch extends State<UserTrainerDetailedSearch> {
                                     int hasAlreadyBooked = listGymUserClasses
                                         .where((listGymUserData) =>
                                             listGymUserData.gym_class_id ==
-                                            gymTrainerClassId)
+                                                gymTrainerClassId &&
+                                            listGymUserData.status == "1")
+                                        .toList()
+                                        .length;
+
+                                    int classDone = listGymUserClasses
+                                        .where((listGymUserData) =>
+                                            listGymUserData.gym_class_id ==
+                                                gymTrainerClassId &&
+                                            listGymUserData.status == "2")
                                         .toList()
                                         .length;
 
@@ -366,9 +382,11 @@ class _userTrainerDetailedSearch extends State<UserTrainerDetailedSearch> {
 
                                     String fullname = firstname;
 
+                                    String gymClassAverageRating = "";
+
                                     return GestureDetector(
                                       onTap: () {
-                                        if (hasAlreadyBooked == 1) {
+                                        if (hasAlreadyBooked > 0) {
                                         } else {
                                           setSession("receiverName", fullname);
                                           setSession(
@@ -412,64 +430,116 @@ class _userTrainerDetailedSearch extends State<UserTrainerDetailedSearch> {
                                                     margin:
                                                         const EdgeInsets.only(
                                                             top: 5),
-                                                    child: Image.network(
-                                                        height: 250,
-                                                        width: MediaQuery.of(
-                                                                    context)
-                                                                .size
-                                                                .width -
-                                                            50,
-                                                        cover_photo_url,
-                                                        errorBuilder: (context,
-                                                            error, StackTrace) {
-                                                      return Center(
-                                                          child: Container(
-                                                              height: 250,
-                                                              width: MediaQuery.of(
-                                                                          context)
-                                                                      .size
-                                                                      .width -
-                                                                  50,
-                                                              decoration: BoxDecoration(
-                                                                  border: Border.all(
-                                                                      color: Colors
-                                                                          .grey
-                                                                          .withOpacity(
-                                                                              0.2))),
-                                                              child: Column(
-                                                                  mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .center,
-                                                                  children: [
-                                                                    Icon(Icons
-                                                                        .image_not_supported_outlined),
-                                                                    Center(
-                                                                        child: Text(
-                                                                            "Error Loading Image"))
-                                                                  ])));
-                                                    }, loadingBuilder: (context,
-                                                            Widget child,
-                                                            ImageChunkEvent?
-                                                                loadingProgress) {
-                                                      if (loadingProgress ==
-                                                          null) {
-                                                        return child;
-                                                      } else {
-                                                        return Container(
+                                                    child: Stack(children: [
+                                                      Image.network(
                                                           height: 250,
-                                                          width: 250,
-                                                          child: Center(
-                                                              child: CircularProgressIndicator(
-                                                                  value: loadingProgress !=
-                                                                          null
-                                                                      ? loadingProgress
-                                                                              .cumulativeBytesLoaded /
-                                                                          (loadingProgress.expectedTotalBytes ??
-                                                                              1)
-                                                                      : null)),
-                                                        );
-                                                      }
-                                                    }, fit: BoxFit.cover),
+                                                          width: MediaQuery.of(
+                                                                      context)
+                                                                  .size
+                                                                  .width -
+                                                              50,
+                                                          cover_photo_url,
+                                                          errorBuilder:
+                                                              (context, error,
+                                                                  StackTrace) {
+                                                        return Center(
+                                                            child: Container(
+                                                                height: 250,
+                                                                width: MediaQuery.of(
+                                                                            context)
+                                                                        .size
+                                                                        .width -
+                                                                    50,
+                                                                decoration: BoxDecoration(
+                                                                    border: Border.all(
+                                                                        color: Colors
+                                                                            .grey
+                                                                            .withOpacity(
+                                                                                0.2))),
+                                                                child: Column(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .center,
+                                                                    children: [
+                                                                      Icon(Icons
+                                                                          .image_not_supported_outlined),
+                                                                      Center(
+                                                                          child:
+                                                                              Text("Error Loading Image"))
+                                                                    ])));
+                                                      }, loadingBuilder: (context,
+                                                              Widget child,
+                                                              ImageChunkEvent?
+                                                                  loadingProgress) {
+                                                        if (loadingProgress ==
+                                                            null) {
+                                                          return child;
+                                                        } else {
+                                                          return Container(
+                                                            height: 250,
+                                                            width: 250,
+                                                            child: Center(
+                                                                child: CircularProgressIndicator(
+                                                                    value: loadingProgress !=
+                                                                            null
+                                                                        ? loadingProgress.cumulativeBytesLoaded /
+                                                                            (loadingProgress.expectedTotalBytes ??
+                                                                                1)
+                                                                        : null)),
+                                                          );
+                                                        }
+                                                      }, fit: BoxFit.cover),
+                                                      hasAlreadyBooked > 0
+                                                          ? Positioned.fill(
+                                                              left: 0,
+                                                              right: 0,
+                                                              top: 200,
+                                                              child: Container(
+                                                                  padding:
+                                                                      const EdgeInsets
+                                                                          .only(
+                                                                          left:
+                                                                              8),
+                                                                  decoration: BoxDecoration(
+                                                                      color: Colors
+                                                                          .black54),
+                                                                  height: 250,
+                                                                  width: MediaQuery.of(
+                                                                              context)
+                                                                          .size
+                                                                          .width -
+                                                                      150,
+                                                                  child: Column(
+                                                                      mainAxisAlignment:
+                                                                          MainAxisAlignment
+                                                                              .center,
+                                                                      children: [
+                                                                        Row(
+                                                                            children: [
+                                                                              Icon(Icons.bookmark_added, color: Colors.white, size: 30),
+                                                                              Text(" You have already booked this class", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white))
+                                                                            ])
+                                                                      ])))
+                                                          : classDone > 0
+                                                              ? Positioned.fill(
+                                                                  left: 0,
+                                                                  right: 0,
+                                                                  top: 200,
+                                                                  child: Container(
+                                                                      padding: const EdgeInsets.only(left: 8),
+                                                                      decoration: BoxDecoration(color: Colors.black54),
+                                                                      height: 250,
+                                                                      width: MediaQuery.of(context).size.width - 150,
+                                                                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                                                        Row(
+                                                                            children: [
+                                                                              Icon(Icons.check, color: Colors.lightGreenAccent, size: 30),
+                                                                              SizedBox(width: 5),
+                                                                              Text(" You have already FINISHED this class\n but you can book again", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.white))
+                                                                            ])
+                                                                      ])))
+                                                              : Text(""),
+                                                    ]),
                                                   )),
                                                   Container(
                                                     padding:
@@ -498,7 +568,8 @@ class _userTrainerDetailedSearch extends State<UserTrainerDetailedSearch> {
                                                                       " $className with ${username}"),
                                                                 ]),
                                                                 Row(children: [
-                                                                  Text("4.8 "),
+                                                                  Text(
+                                                                      gymClassAverageRating),
                                                                   Icon(
                                                                       Icons
                                                                           .star,
@@ -511,14 +582,6 @@ class _userTrainerDetailedSearch extends State<UserTrainerDetailedSearch> {
                                                                 ])
                                                               ]),
                                                           SizedBox(height: 8),
-                                                          hasAlreadyBooked == 1
-                                                              ? Text(
-                                                                  " You have already booked this class")
-                                                              : Visibility(
-                                                                  visible:
-                                                                      false,
-                                                                  child:
-                                                                      Text("")),
                                                           Text("Location",
                                                               style: TextStyle(
                                                                   fontSize:
@@ -535,7 +598,7 @@ class _userTrainerDetailedSearch extends State<UserTrainerDetailedSearch> {
                                                                       .spaceBetween,
                                                               children: [
                                                                 Text(
-                                                                    "PHP $pricePerDay / Day",
+                                                                    "PHP $pricePerDay / Session",
                                                                     style: TextStyle(
                                                                         fontSize:
                                                                             12,

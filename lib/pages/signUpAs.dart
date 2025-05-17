@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fitup/pages/splash.dart';
 import 'package:fitup/pages/RegisterUser.dart';
+import 'package:fitup/pages/chooseGymAffiliation.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpAs extends StatefulWidget {
   const SignUpAs({super.key});
@@ -8,6 +11,21 @@ class SignUpAs extends StatefulWidget {
   @override
   State<SignUpAs> createState() => _SignUpAsState();
 }
+
+Future<void> setSession(String key, String value) async {
+  SharedPreferences ref = await SharedPreferences.getInstance();
+  ref.setString(key, value);
+} //
+
+Future<String?> getSession(String key) async {
+  SharedPreferences ref = await SharedPreferences.getInstance();
+  return ref.getString(key);
+} // getSession
+
+Future<void> removeSession(String key) async {
+  SharedPreferences ref = await SharedPreferences.getInstance();
+  ref.remove(key);
+} // removeSession
 
 class _SignUpAsState extends State<SignUpAs> {
   final textEmailController = TextEditingController();
@@ -64,9 +82,14 @@ class _SignUpAsState extends State<SignUpAs> {
               children: [
                 GestureDetector(
                     onTap: () {
+                      // Navigator.pushReplacement(context,
+                      //     MaterialPageRoute(builder: (context) {
+                      //   return const RegisterUser(registerRole: "2");
+                      // }));
+
                       Navigator.pushReplacement(context,
                           MaterialPageRoute(builder: (context) {
-                        return const RegisterUser(registerRole: "2");
+                        return const ChooseGymAffiliation(roleAccount: "2");
                       }));
                     },
                     child: Container(

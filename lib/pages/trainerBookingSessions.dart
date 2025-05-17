@@ -16,7 +16,6 @@ import 'dart:io';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:fitup/services/firebase_services.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 

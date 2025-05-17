@@ -16,6 +16,7 @@ import 'package:fitup/pages/chooseSendOtp.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitup/classes/AppConfig.dart';
+import 'package:intl/intl.dart';
 
 String dbUrl = AppConfig.dbUrl;
 
@@ -93,6 +94,53 @@ Future<String> checkUserExist(
   return errorContactBuffer.toString();
 }
 
+void updateUserDetails(
+    String bio_one,
+    String bio_two,
+    String specialty,
+    String cover_photos,
+    String gymId,
+    String profileDescription,
+    String socialsInstagram,
+    String socialsFacebook,
+    String socialsX,
+    String socialsWhatsapp,
+    String socialsTiktok,
+    String socialsRednote,
+    String socialsLinkedin,
+    String socialsViber) async {
+  String firebaseUID = FirebaseAuth.instance.currentUser!.uid.toString();
+  String url = dbUrl + "gym_trainer_profile/$firebaseUID.json";
+
+  String date_time_added =
+      DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now());
+  try {
+    final response = await http.patch(Uri.parse(url),
+        body: json.encode({
+          "bio_one": bio_one,
+          "bio_two": bio_two,
+          "specialty": specialty,
+          "cover_photos": cover_photos,
+          "date_time_added": date_time_added,
+          "date_time_last_updated": "",
+          "firebase_uid": firebaseUID,
+          "gym_id": gymId,
+          "gym_trainer_profile_id": firebaseUID,
+          "profile_description": profileDescription,
+          "socials_facebook": socialsFacebook,
+          "socials_instagram": socialsInstagram,
+          "socials_x": socialsX,
+          "socials_whatsapp": socialsWhatsapp,
+          "socials_tiktok": socialsTiktok,
+          "socials_rednote": socialsRednote,
+          "socials_linkedin": socialsLinkedin,
+          "socials_viber": socialsViber
+        }));
+  } catch (error) {
+    throw error;
+  }
+} // updateUserDetails
+
 Future<void> signUpWithEmail(
     String username,
     String email,
@@ -106,7 +154,10 @@ Future<void> signUpWithEmail(
   StringBuffer errorStringBuffer = new StringBuffer();
 
   String pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
+  String emailPatternInReact = r'/^[^\s@]+@[^\s@]+\.[^\s@]+$/';
   String errors = "";
+
+  String? gymSelectedId = await getSession("gym_selected_id");
 
   RegExp regex = RegExp(pattern);
 
@@ -156,6 +207,12 @@ Future<void> signUpWithEmail(
 
       writeData(username, email, phone, firebase_uid, roleId, email_verified,
           context);
+
+      if (roleId == "2") {
+        updateUserDetails("", "", "", "", gymSelectedId ?? "", "", "", "", "",
+            "", "", "", "", "");
+      }
+
       print(
           'User details saved for registration: ${userCredential.user!.email}');
 

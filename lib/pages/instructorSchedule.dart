@@ -6,9 +6,11 @@ import 'package:fitup/classes/GymTrainerClasses.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'dart:convert';
 
 import 'package:fitup/classes/AppConfig.dart';
+import 'package:fitup/pages/InstructorMainMenu.dart';
 
 String dbUrl = AppConfig.dbUrl;
 
@@ -16,6 +18,12 @@ class InstructorSchedule extends StatefulWidget {
   const InstructorSchedule({super.key});
   @override
   State<InstructorSchedule> createState() => _instructorScheduleState();
+}
+
+String convertMilitaryToAMPM(String time24) {
+  final dateTime = DateFormat("HH:mm").parse(time24);
+  final formattedTime = DateFormat("h:mm a").format(dateTime);
+  return formattedTime;
 }
 
 Future<List<GymTrainerClasses>> getClassesJson(String fUID) async {
@@ -171,10 +179,10 @@ class _instructorScheduleState extends State<InstructorSchedule> {
         }
       }
 
-      Duration lenghtDate =
+      Duration lengthDate =
           DateTime.parse(dateEnd).difference(DateTime.parse(dateStart));
 
-      for (int i = 0; i < lenghtDate.inDays; i++) {
+      for (int i = 0; i < lengthDate.inDays; i++) {
         final scheduledDate = DateTime.parse(dateStart).add(Duration(days: i));
 
         int dayIndex = scheduledDate.weekday;
@@ -182,118 +190,164 @@ class _instructorScheduleState extends State<InstructorSchedule> {
             .where((dataIndex) => dataIndex == dayIndex.toString())
             .length;
 
-        // String timeRange = scheduledTimes.split(',')[dayIndex];
+        String weekDayPresent = weekDayIndexPresent
+            .where((dataIndex) => dataIndex == dayIndex.toString())
+            .toString();
+
+        int ndx = 0;
+
+        days.forEach((value) {
+          if (value == weekDayPresent) {
+            ndx += 1;
+          }
+        });
 
         if (isPresent > 0) {
-          provider.addEventWithNote(scheduledDate, " " + className, level);
+          String timeRange = scheduledTimes.split(',')[ndx];
+          String timeStart = convertMilitaryToAMPM(timeRange.split("-")[0]);
+          String timeEnd = convertMilitaryToAMPM(timeRange.split("-")[1]);
+          String timeRangeString = timeStart + " - " + timeEnd;
+
+          provider.addEventWithNote(scheduledDate,
+              " " + className.toUpperCase(), level + "\n $timeRangeString");
         }
       }
     }
 
     return Scaffold(
-      appBar: AppBar(
-        leading: Icon(Icons.calendar_month),
-        title: Text("Schedules", style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
-      body: Column(
-        children: [
-          TableCalendar(
-            onDaySelected: (selectedDay, focusedDay) {
-              provider.selectDay(selectedDay);
-            },
-            focusedDay: provider.selectedDay,
-            firstDay: DateTime(2020),
-            lastDay: DateTime(2050),
-            selectedDayPredicate: (day) => isSameDay(provider.selectedDay, day),
+        appBar: AppBar(
+          leading: Icon(Icons.calendar_month),
+          title:
+              Text("Schedules", style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        body: Column(
+          children: [
+            TableCalendar(
+              onDaySelected: (selectedDay, focusedDay) {
+                provider.selectDay(selectedDay);
+                _buildEventList(provider);
 
-            calendarStyle: CalendarStyle(
-                selectedDecoration: BoxDecoration(
-                    color: Color.fromARGB(198, 214, 4, 233),
-                    shape: BoxShape.circle),
-                todayDecoration: BoxDecoration(
-                  color: Color.fromARGB(199, 167, 10, 180),
-                  shape: BoxShape.circle,
-                )),
-
-            availableCalendarFormats: const {
-              CalendarFormat.week: 'Month View',
-              CalendarFormat.month: 'Week View',
-            },
-            calendarFormat: calendarFormatSelected ?? CalendarFormat.month,
-            onFormatChanged: (formatName) {
-              setState(() {
-                calendarFormatSelected = formatName;
-              });
-            },
-            eventLoader: (day) => provider.getEventsForDay(day),
-            // headerStyle: HeaderStyle(formatButtonVisible: false),
-            // onRangeSelected: (start, end, focusedDay) {
-            //   provider.selectRange(start, end);
-            // },
-          ),
-          SizedBox(height: 8.0),
-          _buildEventList(provider),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _addEventDialog(context, provider),
-        child: Icon(Icons.add),
-      ),
-    );
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        InstructorMainMenu(
+                            selectedInitIndex: 2, subSelectedInitIndex: 0),
+                    transitionDuration: Duration.zero,
+                    reverseTransitionDuration: Duration.zero,
+                  ),
+                );
+              },
+              focusedDay: provider.selectedDay,
+              firstDay: DateTime(2020),
+              lastDay: DateTime(2050),
+              selectedDayPredicate: (day) =>
+                  isSameDay(provider.selectedDay, day),
+              calendarStyle: CalendarStyle(
+                  selectedDecoration: BoxDecoration(
+                      color: Color.fromARGB(198, 214, 4, 233),
+                      shape: BoxShape.circle),
+                  todayDecoration: BoxDecoration(
+                    color: Color.fromARGB(199, 167, 10, 180),
+                    shape: BoxShape.circle,
+                  )),
+              availableCalendarFormats: const {
+                CalendarFormat.week: 'Week View',
+                CalendarFormat.month: 'Month View',
+              },
+              calendarFormat: calendarFormatSelected ?? CalendarFormat.month,
+              onFormatChanged: (formatName) {
+                setState(() {
+                  calendarFormatSelected = formatName;
+                });
+              },
+              eventLoader: (day) => provider.getEventsForDay(day),
+            ),
+            SizedBox(height: 8.0),
+            _buildEventList(provider),
+          ],
+        ));
   }
 
   Widget _buildEventList(CalendarProvider provider) {
     final selectedEvents = provider.getEventsForDay(provider.selectedDay);
 
     return Expanded(
-      child: ListView.builder(
-        itemCount: selectedEvents.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(selectedEvents[index]),
-            trailing: IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: () => provider.removeEvent(
-                  provider.selectedDay, selectedEvents[index]),
-            ),
-          );
-        },
+      child: Container(
+        padding: const EdgeInsets.only(top: 5),
+        margin: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            color: Color.fromARGB(199, 167, 10, 180)),
+        child: ListView.builder(
+          itemCount: selectedEvents.length,
+          itemBuilder: (context, index) {
+            return ListTile(
+              title: Container(
+                margin: const EdgeInsets.only(top: 10),
+                width: MediaQuery.of(context).size.width,
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(selectedEvents[index].split("-")[0],
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                      Text(
+                          selectedEvents[index].split("-")[1] +
+                              "- " +
+                              selectedEvents[index].split("-")[2],
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w300,
+                              fontSize: 12)),
+                      SizedBox(height: 5),
+                      Container(
+                          margin: const EdgeInsets.only(top: 5, left: 3),
+                          height: 1,
+                          width: MediaQuery.of(context).size.width - 250,
+                          decoration: BoxDecoration(color: Colors.white))
+                    ]),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  void _addEventDialog(BuildContext context, CalendarProvider provider) {
-    final eventController = TextEditingController();
-    final noteController = TextEditingController();
+  // void _addEventDialog(BuildContext context, CalendarProvider provider) {
+  //   final eventController = TextEditingController();
+  //   final noteController = TextEditingController();
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Add Event with Note'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: eventController,
-              decoration: InputDecoration(hintText: 'Enter event name'),
-            ),
-            TextField(
-              controller: noteController,
-              decoration: InputDecoration(hintText: 'Enter event note'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              provider.addEventWithNote(provider.selectedDay,
-                  eventController.text, noteController.text);
-              Navigator.pop(context);
-            },
-            child: Text('Add'),
-          ),
-        ],
-      ),
-    );
-  } // addEventDialog
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: Text('Add Event with Note'),
+  //       content: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //           TextField(
+  //             controller: eventController,
+  //             decoration: InputDecoration(hintText: 'Enter event name'),
+  //           ),
+  //           TextField(
+  //             controller: noteController,
+  //             decoration: InputDecoration(hintText: 'Enter event note'),
+  //           ),
+  //         ],
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () {
+  //             provider.addEventWithNote(provider.selectedDay,
+  //                 eventController.text, noteController.text);
+  //             Navigator.pop(context);
+  //           },
+  //           child: Text('Add'),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // } // addEventDialog
 }

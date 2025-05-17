@@ -560,7 +560,9 @@ class _DashboardPage extends State<DashboardPage> {
 
     double thisMonthSalesDoubleValue =
         listTransactionDataValue.fold(0.0, (sum, item) {
-      return sum + double.parse(item.total_paid);
+      return sum +
+          double.parse(
+              isNumeric(item.total_paid) == true ? item.total_paid : "0");
     });
 
     return thisMonthSalesDoubleValue;
@@ -621,7 +623,9 @@ class _DashboardPage extends State<DashboardPage> {
 
     double thisMonthSalesDoubleValue =
         listTransactionDataValueThisMonth.fold(0.0, (sum, item) {
-      return sum + double.parse(item.total_paid);
+      return sum +
+          double.parse(
+              isNumeric(item.total_paid) == true ? item.total_paid : "0");
     });
 
     listTransactionTrainerCollectedDataValueThisMonth = listTransactionDataValue
@@ -636,7 +640,9 @@ class _DashboardPage extends State<DashboardPage> {
     double thisMonthTrainerCollectedDoubleValue =
         listTransactionTrainerCollectedDataValueThisMonth.fold(0.0,
             (sum, item) {
-      return sum + double.parse(item.total_paid);
+      return sum +
+          double.parse(
+              isNumeric(item.total_paid) == true ? item.total_paid : "0");
     });
 
     setState(() {

@@ -32,6 +32,7 @@ class CalendarProvider with ChangeNotifier {
 
   List<String> getEventsForDay(DateTime day) {
     final normalizedDate = DateTime(day.year, day.month, day.day);
+
     return _events[normalizedDate] ?? [];
   }
 

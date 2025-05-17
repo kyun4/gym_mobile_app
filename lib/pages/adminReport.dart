@@ -89,7 +89,7 @@ class _adminReportState extends State<AdminReport> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-            leading: Icon(Icons.arrow_back_ios_new),
+            leading: Icon(Icons.arrow_back_ios_new, color: Colors.transparent),
             centerTitle: true,
             title: Text("Incident Reports", style: TextStyle(fontSize: 14))),
         body: SafeArea(
